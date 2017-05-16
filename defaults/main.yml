@@ -1,0 +1,78 @@
+---
+## Version of MiaRec recorder to install
+miarec_version: 5.2.1.169
+
+# ----------------------------
+# Application settings:
+#   - database connection
+#   - redis connection
+# ----------------------------
+miarec_db_host: 127.0.0.1
+miarec_db_port: 5432
+miarec_db_name: miarecdb
+miarec_db_user: miarec
+miarec_db_password: password
+
+miarec_redis_host: 127.0.0.1
+miarec_redis_port: 6379
+
+miarec_bin_user: root
+miarec_bin_group: root
+
+
+# Instance name.
+# Multiple instances could connect to the same database
+# Using unique name for each instance allows to load individual settings
+# for each instance (identified by name)
+miarec_instance_name: recorder
+
+
+# ------------------------------------
+# Installation folder structure:
+# ------------------------------------
+#   root:
+#      releases:
+#          - 1.0.0.100
+#          - 2.0.1.200
+#          - 3.1.2.5
+#      shared:
+#          - data1
+#          - data2
+#      current: -> releases/3.1.2.5
+#
+# The 'releases' folder holds all the available releases. During a deploy, a new folder should be created in the releases folder.
+# The 'current' symlink points to one of the releases (usually, the latest one)
+# The 'shared' folder holds any resource that is shared between releases.
+#
+# Base installation directory for MiaRec recorder
+miarec_install_dir: /opt/miarec
+
+
+# The working directory for MiaRec process.
+# MiaRec stores some temporary files here.
+# Also, in case of application crash, the core dump files are created here.
+# miarec_work_dir: /var/lib/miarec
+miarec_work_dir: /opt/miarec/shared
+
+# Location for log files
+# This could be the 'shared' folder, but recommended location is /var/log
+# because usually /opt and /var are located on different disk partitions.
+miarec_log_dir: /var/log/miarec
+
+# Default directory for recordings. It could be changes via web portal
+miarec_recordings_dir: /var/miarec/recordings
+
+
+miarec_download_base_url: "https://www.miarec.com/files/download"
+  
+# Directory where to download miarec files
+miarec_download_dir: /tmp
+
+# whether or not to delete the downloaded source code. By setting it
+# to false and using a custom var for `miarec_download_dir` a kind of
+# local caching can be achieved.
+miarec_cleanup_downloads: yes
+
+
+
+

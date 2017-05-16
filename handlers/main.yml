@@ -1,0 +1,5 @@
+---
+- name: restart miarec
+  service: 
+    name: miarec
+    state: restarted
