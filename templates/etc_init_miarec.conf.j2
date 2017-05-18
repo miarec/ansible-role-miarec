@@ -1,0 +1,30 @@
+description "MiaRec call recorder"
+author      "MiaRec, Inc. www.miarec.com"
+
+env EXEC={{ miarec_install_dir }}/current/miarec
+env PIDFILE=/var/run/miarec/miarec.pid
+env CONFFILE={{ miarec_install_dir }}/current/miarec.ini
+
+start on started sshd
+stop on runlevel [!2345]
+
+console output
+
+# Increase open file descriptors limit
+limit nofile 10240 10240
+
+# Restart automatically proces in case of crash
+respawn
+
+# Stop respawn if it occured more than 10 times during 60 seconds period.
+# This means serious problems
+respawn limit 10 60
+
+# Current working directory for MiaRec process
+chdir {{ miarec_work_dir }}
+
+# Enable core dumps for troubleshooting
+limit core unlimited unlimited
+
+instance miarec
+exec $EXEC -c $CONFFILE --pid $PIDFILE

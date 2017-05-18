@@ -163,6 +163,16 @@
 # --------------------------------------------------
 # Install service
 # --------------------------------------------------
+- fail:
+    msg: "Only SystemD and Upstart systems are supported at the moment"
+  when: ansible_service_mgr != "upstart" and ansible_service_mgr != "systemd"
+
+
+- fail:
+    msg: "MiaRec upstart script doesn't support run as unprivileged user yet"
+  when: ansible_service_mgr == "upstart" and miarec_bin_user != 'root'
+
+
 - name: Install miarec service | systemd
   template:
     src: "etc_systemd_system_miarec.service.j2"
@@ -170,19 +180,29 @@
     owner: root
     group: root
     mode: 0755
-  when: ansible_service_mgr|default() == "systemd"
+  when: ansible_service_mgr == "systemd"
 
 
-- name: Enable miarec service | systemd
+- name: Install miarec service | upstart
+  template:
+    src: "etc_init_miarec.conf.j2"
+    dest: "/etc/init/miarec.conf"
+    owner: root
+    group: root
+    mode: 0755
+  when: ansible_service_mgr == "upstart"
+
+
+- name: Enable miarec service | systemd or upstart
   service: 
     name: miarec
     enabled: yes
-  when: ansible_service_mgr|default() == "systemd"
+  when: ansible_service_mgr == "systemd" or ansible_service_mgr == "upstart"
 
 
 - name: Start miarec service
   service: 
-    name: celeryd 
+    name: miarec 
     state: started
 
 
