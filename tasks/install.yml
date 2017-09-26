@@ -199,12 +199,7 @@
     enabled: yes
   when: ansible_service_mgr == "systemd" or ansible_service_mgr == "upstart"
 
-
-- name: Start miarec service
-  service: 
-    name: miarec 
-    state: started
-
+# Important! do not start the service right now. Postpone it until deploy_helper creates symbolic link to new release folder.
 
 # --------------------------------------------------
 # Cleanup
