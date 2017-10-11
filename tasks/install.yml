@@ -180,6 +180,7 @@
     owner: root
     group: root
     mode: 0755
+  notify: start miarec
   when: ansible_service_mgr == "systemd"
 
 
@@ -190,6 +191,7 @@
     owner: root
     group: root
     mode: 0755
+  notify: start miarec
   when: ansible_service_mgr == "upstart"
 
 

@@ -3,3 +3,8 @@
   service: 
     name: miarec
     state: restarted
+
+- name: start miarec
+  service: 
+    name: miarec
+    state: started
