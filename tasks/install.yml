@@ -158,6 +158,7 @@
     - section: 'ErrorsLog::File'
       option: 'File'
       value: '{{ miarec_log_dir }}/error/errors.log'
+  notify: restart miarec
 
 
 # --------------------------------------------------
