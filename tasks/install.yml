@@ -189,7 +189,7 @@
     dest: "/etc/systemd/system/miarec.service"
     owner: root
     group: root
-    mode: 0755
+    mode: 0644
   notify: start miarec
   when: ansible_service_mgr == "systemd"
 
@@ -200,7 +200,7 @@
     dest: "/etc/init/miarec.conf"
     owner: root
     group: root
-    mode: 0755
+    mode: 0644
   notify: start miarec
   when: ansible_service_mgr == "upstart"
 
