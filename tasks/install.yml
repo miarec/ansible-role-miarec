@@ -171,6 +171,38 @@
 
 
 # --------------------------------------------------
+# Custom configuration file in INI file
+# --------------------------------------------------
+- name: Custom miarec.ini file settings
+  ini_file:
+    dest: "{{ deploy_helper.new_release_path }}/miarec.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items: "{{ miarec_custom_ini_settings }}"
+  notify: restart miarec
+
+
+# --------------------------------------------------
+# Custom SQL file configuration
+# --------------------------------------------------
+- name: Custom call_start.sql configuration
+  lineinfile:
+    dest: "{{ deploy_helper.new_release_path }}/sqlconfig/call_start.sql"
+    insertafter: EOF
+    line: "{{ miarec_custom_call_start_sql }}"
+  when: miarec_custom_call_start_sql != ''
+  notify: restart miarec
+
+- name: Custom call_stop.sql configuration
+  lineinfile:
+    dest: "{{ deploy_helper.new_release_path }}/sqlconfig/call_stop.sql"
+    insertafter: EOF
+    line: "{{ miarec_custom_call_stop_sql }}"
+  when: miarec_custom_call_stop_sql != ''
+  notify: restart miarec
+
+# --------------------------------------------------
 # Install service
 # --------------------------------------------------
 - fail:

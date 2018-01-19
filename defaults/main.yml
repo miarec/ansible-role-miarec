@@ -91,5 +91,25 @@ miarec_download_dir: /tmp
 miarec_cleanup_downloads: yes
 
 
+# Custom settings for "miarec.ini" file
+# For example:
+#
+#   miarec_custom_ini_setttings:
+#     - { section: 'Main', option: 'Name', value: 'MyRecorder' }
+#
+# It can be defined in inventory file using the following construct:
+#
+#   [all:vars]
+#   miarec_custom_ini_settings = [{ 'section': 'Main', 'option': 'Name', 'value': 'MyRecorder' }]
+#
+miarec_custom_ini_settings: []
+
+
+# Additional lines to provision to the end of "sqlconfig/call_start.sql" and "call_stop.sql" files
+# For example, this can be used to issue custom SQL query when new call is detected like INSERT into custom table
+miarec_custom_call_start_sql: ""
+miarec_custom_call_stop_sql: ""
+
+
 
 
