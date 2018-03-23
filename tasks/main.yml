@@ -9,6 +9,7 @@
 # Install dependencies
 # ---------------------------------------------
 - include: dependencies.yml
+  become: yes
 
 # --------------------------------------------------
 # Initialize the installation/upgrade process
@@ -17,11 +18,13 @@
   deploy_helper:
     path: "{{ miarec_install_dir }}"
     release: "{{ miarec_version }}"
+  become: yes
 
 # --------------------------------------------------
 # Install/upgrade 'miarec' app files
 # --------------------------------------------------
 - include: install.yml
+  become: yes
 
 # --------------------------------------------------
 # Cleanup old and unfinished releases
@@ -34,5 +37,6 @@
     keep_releases: 10
   notify: 
     - restart miarec
+  become: yes
 
 
