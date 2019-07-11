@@ -26,7 +26,7 @@ respawn limit 10 60
 chdir {{ miarec_work_dir }}
 
 # Enable core dumps for troubleshooting
-limit core unlimited unlimited
+limit core 500000000 500000000
 
 instance miarec
 exec $EXEC -c $CONFFILE --pid $PIDFILE
