@@ -160,7 +160,7 @@
       value: '{{ miarec_log_dir }}/error/errors.log'
     - section: 'API::User::webui'
       option: 'IpAddress'
-      value: '{{ miarec_rest_api_permitted_hosts }}'
+      value: '127.0.0.1;{{ miarec_rest_api_permitted_hosts }}'
     - section: 'HttpCallsLog'
       option: 'StartUrl'
       value: 'http://{{ miarec_http_call_events_host }}/notify/call?event=start&call_id=%{call-id}'
