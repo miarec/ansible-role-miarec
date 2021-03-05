@@ -1,0 +1,77 @@
+---
+# --------------------------------------------------
+# Create user/group
+# --------------------------------------------------
+- name: "Add group '{{ miarec_sftp_group }}'"
+  group:
+    name: "{{ miarec_sftp_group }}"
+    state: present
+
+- name: "Add user '{{ miarec_sftp_user }}'"
+  user:
+    name: "{{ miarec_sftp_user }}"
+    group: "{{ miarec_sftp_group }}"
+    home: "{{ miarec_sftp_dir }}"
+    comment: "MiaRec SFTP user"
+    shell: /bin/false
+    state: present
+
+# --------------------------------------------------
+# Create directory, which will be used as a homedir for SFTP user
+# Important: setgid is set on this directory.
+# This allows to share access to that directory with other users (celery, apache)
+# There is only one requirement: these other users should belong to group 'miarec'
+# Important: pass "mode" parameter as a string rather than integer
+#
+# Important: A working chrooted SFTP setup requires root:sftgroup ownership of a user's home directory.
+# Important: SSH will not work if write permission is granted to group on a home directory.
+# --------------------------------------------------
+- name: Create sftp share directory
+  file:
+    path: '{{ miarec_sftp_dir }}'
+    owner: root
+    group: '{{ miarec_sftp_group }}'
+    state: directory
+    mode: "2755"
+
+# Update user password, if specified.
+- name: Update sftp user password
+  user:
+    name: "{{ miarec_sftp_user }}"
+    password: "{{ miarec_sftp_password }}"
+  when: miarec_sftp_password
+
+# Install SSH public key, if specified
+- name: Install sftp public key
+  authorized_key:
+    user: "{{ miarec_sftp_user }}"
+    key: "{{ lookup('file', miarec_sftp_pubkey_file) }}"
+  when: miarec_sftp_pubkey_file
+
+
+# --------------------------------------------------
+# Configure SSH sevice
+# --------------------------------------------------
+- name: Change SFTP subsystem to internal-sftp
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^Subsystem(\s+)sftp'
+    line: "Subsystem sftp internal-sftp"
+    state: present
+  notify: restart sshd
+
+
+- name: Add sshd_config block
+  blockinfile:
+    dest: /etc/ssh/sshd_config
+    marker: "# {mark} MiaRec chrooted SFTP access for group {{ miarec_sftp_group }} block"
+    block: |
+      Match Group {{ miarec_sftp_group }}
+          ChrootDirectory %h
+          AllowTCPForwarding no
+          PermitTunnel no
+          X11Forwarding no
+          AllowAgentForwarding no
+          ForceCommand internal-sftp 
+          PasswordAuthentication {{ miarec_sftp_allow_password | ternary('yes', 'no') }}
+  notify: restart sshd

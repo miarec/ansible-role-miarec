@@ -10,3 +10,10 @@
     name: miarec
     state: started
   become: yes
+
+- name: restart sshd
+  service:
+    name: "{{ 'ssh' if ansible_os_family == 'Debian' else 'sshd' }}"
+    state: restarted
+  become: yes
+  ignore_errors: Yes

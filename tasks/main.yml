@@ -40,3 +40,9 @@
   become: yes
 
 
+# --------------------------------------------------
+# Create SFTP user
+# --------------------------------------------------
+- include: sftpuser.yml
+  when: miarec_sftp_create_user|bool
+  become: yes

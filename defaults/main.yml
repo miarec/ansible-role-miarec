@@ -110,6 +110,16 @@ miarec_custom_ini_settings: []
 miarec_custom_call_start_sql: ""
 miarec_custom_call_stop_sql: ""
 
-
+# Optionally, create SFTP user on recorder host for remote access of files via SFTP protocol
+# This will create a local user account with the following restrictions:
+#   - SSH login is forbidden. Only SFTP is allowed
+#   - Access is limited to the specified directory (chroot is used)
+miarec_create_sftp_user: no
+miarec_sftp_group: "miarecsftp"
+miarec_sftp_user: "miarecsftp"
+miarec_sftp_password: ""
+miarec_sftp_pubkey_file: ""
+miarec_sftp_dir: "{{ miarec_recordings_dir }}"
+miarec_sftp_allow_password: no
 
 
