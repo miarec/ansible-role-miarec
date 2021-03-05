@@ -114,7 +114,7 @@ miarec_custom_call_stop_sql: ""
 # This will create a local user account with the following restrictions:
 #   - SSH login is forbidden. Only SFTP is allowed
 #   - Access is limited to the specified directory (chroot is used)
-miarec_create_sftp_user: no
+miarec_sftp_create_user: no
 miarec_sftp_group: "miarecsftp"
 miarec_sftp_user: "miarecsftp"
 miarec_sftp_password: ""
