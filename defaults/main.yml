@@ -80,7 +80,7 @@ miarec_log_dir: /var/log/miarec
 miarec_recordings_dir: /var/miarec/recordings
 
 
-miarec_download_base_url: "https://www.miarec.com/files/download"
+miarec_download_base_url: "https://miarec-download.s3.amazonaws.com"
   
 # Directory where to download miarec files
 miarec_download_dir: /tmp
