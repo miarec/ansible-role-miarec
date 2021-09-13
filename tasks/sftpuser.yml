@@ -39,14 +39,14 @@
   user:
     name: "{{ miarec_sftp_user }}"
     password: "{{ miarec_sftp_password }}"
-  when: miarec_sftp_password
+  when: miarec_sftp_password | length != 0
 
 # Install SSH public key, if specified
 - name: Install sftp public key
   authorized_key:
     user: "{{ miarec_sftp_user }}"
     key: "{{ lookup('file', miarec_sftp_pubkey_file) }}"
-  when: miarec_sftp_pubkey_file
+  when: miarec_sftp_pubkey_file | length != 0
 
 
 # --------------------------------------------------
