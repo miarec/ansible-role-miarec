@@ -34,6 +34,18 @@
     state: directory
     mode: "2755"
 
+
+# ------------------------------------------------------------
+# Create a sub-directory inside the sftpuser's home directory
+# This directory must be own by sftp user and 
+# ------------------------------------------------------------
+- name: Create a sub-directory inside sftpuser's home dir
+  file:
+    path: '{{ miarec_sftp_dir }}/{{ miarec_instance_name }}'
+    owner: '{{ miarec_sftp_user }}'
+    group: '{{ miarec_sftp_group }}'
+    state: directory
+
 # Update user password, if specified.
 - name: Update sftp user password
   user:
