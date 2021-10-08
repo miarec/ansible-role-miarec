@@ -45,6 +45,7 @@
     owner: '{{ miarec_sftp_user }}'
     group: '{{ miarec_sftp_group }}'
     state: directory
+    mode: "775"
 
 # Update user password, if specified.
 - name: Update sftp user password
