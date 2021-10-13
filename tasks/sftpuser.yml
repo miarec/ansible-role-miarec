@@ -37,7 +37,18 @@
 
 # ------------------------------------------------------------
 # Create a sub-directory inside the sftpuser's home directory
-# This directory must be own by sftp user and 
+# This directory must be own by sftp user and a shared group (miarec).
+# SGID (sticky bit) is required because multiple processes 
+# (apache, miarec, celery, sftpuser) can potentially create files within 
+# this directory. These processes usually run under their account,
+# but all of them are members of a shared group (miarec) as well.
+# For example, Apache web service runs under apache:apache account.
+# User "apache" is also a member of "miarec" group.
+# When Apache web service creates a file in the shared directory,
+# the ownership for this file will be apache:apache by default (when SGID is not used).
+# With SGID (sticky bit), new files will be owned by the same group as a parent's directory,
+# i.e. file will be owned by apache:miarec rather than by apache:apache.
+# This way, the other services within the same group can still have access to those files.
 # ------------------------------------------------------------
 - name: Create a sub-directory inside sftpuser's home dir
   file:
@@ -45,7 +56,7 @@
     owner: '{{ miarec_sftp_user }}'
     group: '{{ miarec_sftp_group }}'
     state: directory
-    mode: "775"
+    mode: "2775"
 
 # Update user password, if specified.
 - name: Update sftp user password
