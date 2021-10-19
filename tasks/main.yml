@@ -18,6 +18,9 @@
   deploy_helper:
     path: "{{ miarec_install_dir }}"
     release: "{{ miarec_version }}"
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: 750
   become: yes
 
 # --------------------------------------------------
