@@ -12,15 +12,33 @@
   become: yes
 
 # --------------------------------------------------
+# Create user/group
+# --------------------------------------------------
+- name: "Add miarec group '{{ miarec_bin_group }}'"
+  group:
+    name: "{{ miarec_bin_group }}"
+    state: present
+  when: miarec_bin_group != 'root'
+
+
+- name: "Add miarec user '{{ miarec_bin_user }}'"
+  user:
+    name: "{{ miarec_bin_user }}"
+    group: "{{ miarec_bin_group }}"
+    comment: "MiaRec"
+    shell: /bin/false
+    system: yes
+  when: miarec_bin_user != 'root'
+
+
+# --------------------------------------------------
 # Initialize the installation/upgrade process
 # --------------------------------------------------
 - name: Initialize the deploy root and gather facts
   deploy_helper:
     path: "{{ miarec_install_dir }}"
     release: "{{ miarec_version }}"
-    owner: root
-    group: '{{ miarec_bin_group }}'
-    mode: 750
+    mode: u=rwX,g=rX,o=rX
   become: yes
 
 # --------------------------------------------------

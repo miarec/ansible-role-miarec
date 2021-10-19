@@ -1,33 +1,12 @@
 ---
 # --------------------------------------------------
-# Create user/group
-# --------------------------------------------------
-- name: "Add miarec group '{{ miarec_bin_group }}'"
-  group:
-    name: "{{ miarec_bin_group }}"
-    state: present
-  when: miarec_bin_group != 'root'
-
-
-- name: "Add miarec user '{{ miarec_bin_user }}'"
-  user:
-    name: "{{ miarec_bin_user }}"
-    group: "{{ miarec_bin_group }}"
-    comment: "MiaRec"
-    shell: /bin/false
-    system: yes
-  when: miarec_bin_user != 'root'
-
-# --------------------------------------------------
 # Create a directory for new release
 # --------------------------------------------------
 - name: Create release directory
   file:
     path: '{{ deploy_helper.new_release_path }}'
     state: directory
-    owner: root
-    group: '{{ miarec_bin_group }}'
-    mode: 750
+    mode: u=rwX,g=rX,o=rX
 
 # --------------------------------------------------
 # Download and extract miarec files into .../releases/{version} folder
@@ -58,9 +37,7 @@
     dest: "{{ miarec_download_dir }}/"
     creates: "{{ miarec_download_dir }}/miarec-{{ miarec_version }}/miarec"
     copy: no
-    owner: root
-    group: '{{ miarec_bin_group }}'
-    mode: 750
+    mode: u=rwX,g=rX,o=rX
   when: miarec_bin_exists.stat.exists == False
 
 
@@ -117,9 +94,7 @@
     section: "{{ item.section }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
-    owner: root
-    group: '{{ miarec_bin_group }}'
-    mode: 640
+    mode: u=rwX,g=rX,o=rX
   with_items:
     - section: 'Main'
       option: 'Name'
