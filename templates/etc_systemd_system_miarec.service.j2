@@ -8,6 +8,7 @@ After=network.target
 Type=simple
 User={{ miarec_bin_user }}
 Group={{ miarec_bin_group }}
+UMask={{ miarec_bin_umask }}
 RuntimeDirectory=miarec
 WorkingDirectory={{ miarec_work_dir }}
 ExecStart={{ miarec_install_dir }}/current/miarec --pid /var/run/miarec/miarec.pid --core 500000000 -c {{ miarec_install_dir }}/current/miarec.ini
