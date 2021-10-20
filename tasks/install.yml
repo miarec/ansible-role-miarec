@@ -87,6 +87,9 @@
 
 # --------------------------------------------------
 # Configuration file
+# It must have permissions:
+#   - read-only access for group "miarec"
+#   - no access for other users
 # --------------------------------------------------
 - name: Configure miarec.ini file
   ini_file:
@@ -94,7 +97,9 @@
     section: "{{ item.section }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
-    mode: u=rwX,g=rX,o=rX
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: u=rwX,g=rX,o=
   with_items:
     - section: 'Main'
       option: 'Name'
