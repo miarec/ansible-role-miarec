@@ -12,9 +12,11 @@ UMask={{ miarec_bin_umask }}
 RuntimeDirectory=miarec
 WorkingDirectory={{ miarec_work_dir }}
 ExecStart={{ miarec_install_dir }}/current/miarec --pid /var/run/miarec/miarec.pid --core 500000000 -c {{ miarec_install_dir }}/current/miarec.ini
-Restart=always
 LimitNOFILE=10240
 LimitFSIZE=infinity
+
+Restart=always
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
