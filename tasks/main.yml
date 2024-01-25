@@ -8,7 +8,7 @@
 # ---------------------------------------------
 # Install dependencies
 # ---------------------------------------------
-- include: dependencies.yml
+- import_tasks: dependencies.yml
   become: yes
 
 # --------------------------------------------------
@@ -44,7 +44,7 @@
 # --------------------------------------------------
 # Install/upgrade 'miarec' app files
 # --------------------------------------------------
-- include: install.yml
+- import_tasks: install.yml
   become: yes
 
 # --------------------------------------------------
@@ -64,6 +64,6 @@
 # --------------------------------------------------
 # Create SFTP user
 # --------------------------------------------------
-- include: sftpuser.yml
+- import_tasks: sftpuser.yml
   when: miarec_sftp_create_user|bool
   become: yes
