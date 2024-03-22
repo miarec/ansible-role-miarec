@@ -9,59 +9,50 @@ testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
 miarec_version = os.environ.get('MIAREC_VERSION')
 
 
-# def test_directories(host):
+def test_directories(host):
 
-#     dirs = [
-#         "/opt/miarecweb/releases/{}".format(miarecweb_version),
-#         "/var/log/miarecweb",
-#         "/var/log/miarecweb/celery"
-#     ]
-#     for dir in dirs:
-#         d = host.file(dir)
-#         assert d.is_directory
-#         assert d.exists
+    dirs = [
+        "/opt/miarec/releases/{}".format(miarec_version),
+        "/opt/miarec/shared",
+        "/var/log/miarec",
+        "/var/log/miarec/cdr",
+        "/var/log/miarec/error",
+        "/var/log/miarec/trace",
+        "/var/miarec/recordings"
+    ]
+    for dir in dirs:
+        d = host.file(dir)
+        assert d.is_directory
+        assert d.exists
 
-# def test_files(host):
-#     files = [
-#         "/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version),
-#         "/etc/systemd/system/celerybeat.service",
-#         "/etc/systemd/system/celeryd.service",
-#         "/var/log/miarecweb/celery/beat.log",
-#         "/var/log/miarecweb/celery/worker1.log"
-#     ]
+def test_files(host):
+    files = [
+        "/opt/miarec/releases/{}/miarec".format(miarec_version),
+        "/opt/miarec/releases/{}/miarec.ini".format(miarec_version)
+    ]
 
-#     for file in files:
-#         f = host.file(file)
-#         assert f.exists
-#         assert f.is_file
+    for file in files:
+        f = host.file(file)
+        assert f.exists
+        assert f.is_file
 
-# def test_service(host):
-#     if host.system_info.distribution == "ubuntu":
-#         services = [
-#             "celeryd",
-#             "celerybeat",
-#             "apache2"
-#         ]
-#     if host.system_info.distribution == "centos":
-#         services = [
-#             "celeryd",
-#             "celerybeat",
-#             "httpd"
-#         ]
+def test_service(host):
+    services = [
+        "miarec"
+    ]
 
-#     for service in services:
-#         s = host.service(service)
-#         assert s.is_enabled
-#         assert s.is_running
+    for service in services:
+        s = host.service(service)
+        assert s.is_enabled
+        assert s.is_running
 
-# def test_socket(host):
-#     sockets = [
-#         "tcp://0.0.0.0:80",
-#         "tcp://0.0.0.0:443"
-#     ]
-#     for socket in sockets:
-#         s = host.socket(socket)
-#         assert s.is_listening
-
-# def test_script(host):
-#     assert host.run("/opt/miarecweb/current/pyenv/bin/python -m miarecweb.scripts.create_root_user -u admin -p admin").rc == 0, "Miarecweb script failed to execute"
+def test_socket(host):
+    sockets = [
+        "tcp://0.0.0.0:9080",
+        "tcp://0.0.0.0:5080",
+        "tcp://0.0.0.0:6554",
+        "tcp://0.0.0.0:6088"
+    ]
+    for socket in sockets:
+        s = host.socket(socket)
+        assert s.is_listening
