@@ -27,17 +27,26 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                distro:
-                    - ubuntu2004
-                    - ubuntu2204
-                    - centos7
-                    # - rockylinux9
-                    # - rockylinux8
-                    # - rhel9
-                    # - rhel8
-                    - rhel7
-                version:
-                    - ${{ vars.MIAREC_VERSION }}
+                include:
+                    - distro: ubuntu2204
+                      version: 7.0.0.111
+                    - distro: ubuntu2004
+                      version: 7.0.0.110
+                    - distro: centos7
+                      version: 7.0.0.100
+                    - distro: rhel7
+                      version: 7.0.0.100
+                # distro:
+                #     - ubuntu2004
+                #     - ubuntu2204
+                #     - centos7
+                #     # - rockylinux9
+                #     # - rockylinux8
+                #     # - rhel9
+                #     # - rhel8
+                #     - rhel7
+                # version:
+                #     - ${{ vars.MIAREC_VERSION }}
 
         steps:
             - name: Check out the Repository
