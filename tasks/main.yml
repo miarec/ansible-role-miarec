@@ -2,14 +2,15 @@
 - name: "Gather os specific variables ({{ ansible_distribution }} - {{ ansible_distribution_major_version }})"
   include_vars: "{{ item }}"
   with_first_found:
-    - "../vars/{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "../vars/{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
     - "../vars/{{ ansible_distribution }}.yml"
 
 # ---------------------------------------------
 # Install dependencies
 # ---------------------------------------------
-- import_tasks: dependencies.yml
-  become: yes
+- name: Install dependencies
+  import_tasks: dependencies.yml
+  become: true
 
 # --------------------------------------------------
 # Create user/group
@@ -27,7 +28,7 @@
     group: "{{ miarec_bin_group }}"
     comment: "MiaRec"
     shell: /bin/false
-    system: yes
+    system: true
   when: miarec_bin_user != 'root'
 
 
@@ -39,13 +40,14 @@
     path: "{{ miarec_install_dir }}"
     release: "{{ miarec_version }}"
     mode: u=rwX,g=rX,o=rX
-  become: yes
+  become: true
 
 # --------------------------------------------------
 # Install/upgrade 'miarec' app files
 # --------------------------------------------------
-- import_tasks: install.yml
-  become: yes
+- name: Install miarec
+  import_tasks: install.yml
+  become: true
 
 # --------------------------------------------------
 # Cleanup old and unfinished releases
@@ -56,14 +58,15 @@
     release: '{{ deploy_helper.new_release }}'
     state: finalize
     keep_releases: 10
-  notify: 
-    - restart miarec
-  become: yes
+  notify:
+    - Restart miarec
+  become: true
 
 
 # --------------------------------------------------
 # Create SFTP user
 # --------------------------------------------------
-- import_tasks: sftpuser.yml
+- name: Create SFTP user
+  import_tasks: sftpuser.yml
   when: miarec_sftp_create_user|bool
-  become: yes
+  become: true

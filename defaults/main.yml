@@ -82,14 +82,14 @@ miarec_recordings_dir: /var/miarec/recordings
 
 
 miarec_download_base_url: "https://miarec-download.s3.amazonaws.com"
-  
+
 # Directory where to download miarec files
 miarec_download_dir: /tmp
 
 # whether or not to delete the downloaded source code. By setting it
 # to false and using a custom var for `miarec_download_dir` a kind of
 # local caching can be achieved.
-miarec_cleanup_downloads: yes
+miarec_cleanup_downloads: true
 
 
 # Custom settings for "miarec.ini" file
@@ -115,12 +115,10 @@ miarec_custom_call_stop_sql: ""
 # This will create a local user account with the following restrictions:
 #   - SSH login is forbidden. Only SFTP is allowed
 #   - Access is limited to the specified directory (chroot is used)
-miarec_sftp_create_user: no
+miarec_sftp_create_user: false
 miarec_sftp_group: "miarecsftp"
 miarec_sftp_user: "miarecsftp"
 miarec_sftp_password: ""
 miarec_sftp_pubkey_file: ""
 miarec_sftp_dir: "{{ miarec_recordings_dir }}"
-miarec_sftp_allow_password: no
-
-
+miarec_sftp_allow_password: false
