@@ -5,7 +5,6 @@ name: Ansible role testing
     push:
         branches:
             - master
-            - 20240307-extend-os
         paths-ignore:
             - '**.md'
 
@@ -27,15 +26,6 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                # include:
-                #     - distro: ubuntu2204
-                #       version: 7.0.0.111
-                #     - distro: ubuntu2004
-                #       version: 7.0.0.110
-                #     - distro: centos7
-                #       version: 7.0.0.100
-                #     - distro: rhel7
-                #       version: 7.0.0.100
                 distro:
                     - ubuntu2004
                     - ubuntu2204
