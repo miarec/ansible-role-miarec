@@ -21,14 +21,15 @@
   file:
     path: '{{ deploy_helper.new_release_path }}/{{ deploy_helper.unfinished_filename }}'
     state: touch
-  when: miarec_bin_exists.stat.exists == False
+    mode: '0644'
+  when: not miarec_bin_exists.stat.exists
 
-
-- name: Download miarec tarbal
+- name: Download miarec tarball
   get_url:
     url: "{{ miarec_download_base_url }}/{{ miarec_tarball_file }}"
     dest: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
-  when: miarec_bin_exists.stat.exists == False
+    mode: '0644'
+  when: not miarec_bin_exists.stat.exists
 
 
 - name: Untar the source package
@@ -36,16 +37,15 @@
     src: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
     dest: "{{ miarec_download_dir }}/"
     creates: "{{ miarec_download_dir }}/miarec-{{ miarec_version }}/miarec"
-    copy: no
+    copy: false
     mode: u=rwX,g=rX,o=rX
-  when: miarec_bin_exists.stat.exists == False
-
+  when: not miarec_bin_exists.stat.exists
 
 - name: Move miarec files to releases folder
-  shell: "mv {{ miarec_download_dir }}/miarec-{{ miarec_version}}/* {{ deploy_helper.new_release_path }}/"
-  when: miarec_bin_exists.stat.exists == False
-
-
+  shell: "mv {{ miarec_download_dir }}/miarec-{{ miarec_version }}/* {{ deploy_helper.new_release_path }}/"
+  args:
+    creates: "{{ deploy_helper.new_release_path }}/miarec"
+  when: not miarec_bin_exists.stat.exists
 
 # --------------------------------------------------
 # Create required directory
@@ -56,6 +56,7 @@
     owner: '{{ miarec_bin_user }}'
     group: '{{ miarec_bin_group }}'
     state: directory
+    mode: '0755'
 
 - name: Create log directories for miarec
   file:
@@ -63,6 +64,7 @@
     owner: '{{ miarec_bin_user }}'
     group: '{{ miarec_bin_group }}'
     state: directory
+    mode: '0755'
   with_items:
     - '{{ miarec_log_dir }}'
     - '{{ miarec_log_dir }}/cdr'
@@ -158,7 +160,7 @@
     - section: 'HttpCallsLog'
       option: 'StopUrl'
       value: 'http://{{ miarec_http_call_events_host }}/notify/call?event=stop&call_id=%{call-id}'
-  notify: restart miarec
+  notify: Restart miarec
 
 
 # --------------------------------------------------
@@ -170,8 +172,9 @@
     section: "{{ item.section }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
+    mode: '0640'
   with_items: "{{ miarec_custom_ini_settings }}"
-  notify: restart miarec
+  notify: Restart miarec
 
 
 # --------------------------------------------------
@@ -183,7 +186,7 @@
     insertafter: EOF
     line: "{{ miarec_custom_call_start_sql }}"
   when: miarec_custom_call_start_sql != ''
-  notify: restart miarec
+  notify: Restart miarec
 
 - name: Custom call_stop.sql configuration
   lineinfile:
@@ -191,17 +194,19 @@
     insertafter: EOF
     line: "{{ miarec_custom_call_stop_sql }}"
   when: miarec_custom_call_stop_sql != ''
-  notify: restart miarec
+  notify: Restart miarec
 
 # --------------------------------------------------
 # Install service
 # --------------------------------------------------
-- fail:
+- name: Check for SystemD
+  fail:
     msg: "Only SystemD and Upstart systems are supported at the moment"
   when: ansible_service_mgr != "upstart" and ansible_service_mgr != "systemd"
 
 
-- fail:
+- name: Check for upstart
+  fail:
     msg: "MiaRec upstart script doesn't support run as unprivileged user yet"
   when: ansible_service_mgr == "upstart" and miarec_bin_user != 'root'
 
@@ -212,8 +217,8 @@
     dest: "/etc/systemd/system/miarec.service"
     owner: root
     group: root
-    mode: 0644
-  notify: start miarec
+    mode: '0644'
+  notify: Start miarec
   when: ansible_service_mgr == "systemd"
 
 
@@ -223,15 +228,15 @@
     dest: "/etc/init/miarec.conf"
     owner: root
     group: root
-    mode: 0644
-  notify: start miarec
+    mode: '0644'
+  notify: Start miarec
   when: ansible_service_mgr == "upstart"
 
 
 - name: Enable miarec service | systemd or upstart
-  service: 
+  service:
     name: miarec
-    enabled: yes
+    enabled: true
   when: ansible_service_mgr == "systemd" or ansible_service_mgr == "upstart"
 
 # Important! do not start the service right now. Postpone it until deploy_helper creates symbolic link to new release folder.
@@ -240,11 +245,10 @@
 # Cleanup
 # --------------------------------------------------
 - name: Clean up the downloaded files
-  file: 
+  file:
     path: '{{ item }}'
     state: absent
   with_items:
     - "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
     - "{{ miarec_download_dir }}/{{ miarec_tarball_file }}.asc"
   when: miarec_cleanup_downloads|bool
-

@@ -1,19 +1,19 @@
 ---
-- name: restart miarec
-  service: 
+- name: Restart miarec
+  service:
     name: miarec
     state: restarted
-  become: yes
+  become: true
 
-- name: start miarec
-  service: 
+- name: Start miarec
+  service:
     name: miarec
     state: started
-  become: yes
+  become: true
 
-- name: restart sshd
+- name: Restart sshd
   service:
     name: "{{ 'ssh' if ansible_os_family == 'Debian' else 'sshd' }}"
     state: restarted
-  become: yes
-  ignore_errors: Yes
+  become: true
+  ignore_errors: true

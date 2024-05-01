@@ -38,8 +38,8 @@
 # ------------------------------------------------------------
 # Create a sub-directory inside the sftpuser's home directory
 # This directory must be own by sftp user and a shared group (miarec).
-# SGID (sticky bit) is required because multiple processes 
-# (apache, miarec, celery, sftpuser) can potentially create files within 
+# SGID (sticky bit) is required because multiple processes
+# (apache, miarec, celery, sftpuser) can potentially create files within
 # this directory. These processes usually run under their account,
 # but all of them are members of a shared group (miarec) as well.
 # For example, Apache web service runs under apache:apache account.
@@ -83,7 +83,7 @@
     line: "Subsystem sftp internal-sftp"
     state: present
     validate: '/usr/sbin/sshd -T -f %s'
-  notify: restart sshd
+  notify: Restart sshd
 
 - name: Add sshd_config block
   blockinfile:
@@ -96,17 +96,17 @@
           PermitTunnel no
           X11Forwarding no
           AllowAgentForwarding no
-          ForceCommand internal-sftp 
+          ForceCommand internal-sftp
           PasswordAuthentication {{ miarec_sftp_allow_password | ternary('yes', 'no') }}
     validate: '/usr/sbin/sshd -T -f %s'
-  notify: restart sshd
+  notify: Restart sshd
 
 - name: Verify AllowUsers directive
-  shell: "grep -E '^AllowUsers' /etc/ssh/sshd_config"
-  changed_when: False
-  failed_when: False
+  command: "grep -E '^AllowUsers' /etc/ssh/sshd_config"
+  changed_when: false
+  failed_when: false
   register: grep_allowusers_ssh
-  check_mode: no
+  check_mode: false
 
 - name: "Modify AllowUsers sshd directive for '{{ miarec_sftp_user }}'"
   replace:
@@ -114,15 +114,15 @@
     regexp: '^(AllowUsers ((?!\b{{ miarec_sftp_user }}\b).)*)$'
     replace: '\1 {{ miarec_sftp_user }}'
     validate: '/usr/sbin/sshd -T -f %s'
-  notify: restart sshd
+  notify: Restart sshd
   when: grep_allowusers_ssh.rc == 0
 
 - name: Verify AllowGroups directive
-  shell: "grep -E '^AllowGroups' /etc/ssh/sshd_config"
+  command: "grep -E '^AllowGroups' /etc/ssh/sshd_config"
   register: grep_allowgroups_ssh
-  changed_when: False
-  failed_when: False
-  check_mode: no
+  changed_when: false
+  failed_when: false
+  check_mode: false
 
 - name: "Modify AllowGroups sshd directive for '{{ miarec_sftp_group }}'"
   replace:
@@ -130,6 +130,5 @@
     regexp: '^(AllowGroups ((?!\b{{ miarec_sftp_group }}\b).)*)$'
     replace: '\1 {{ miarec_sftp_group }}'
     validate: '/usr/sbin/sshd -T -f %s'
-  notify: restart sshd
+  notify: Restart sshd
   when: grep_allowgroups_ssh.rc == 0
-
