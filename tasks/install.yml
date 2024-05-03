@@ -33,9 +33,11 @@
         dest: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
         mode: '0644'
 
-    # In some cases, unarchive will change permissions of destination folder,
-    # to prevent permissions issues with directories that might be shared, like /tmp
-    # we will create a direcoty specific to this role to extract files to
+    # unarchive must change the permissions of the destination folder when mode parameter is supplied.
+    # But it behaves differently with tar.gz and zip archives.
+    # When extracting tar.gz, it doesn't touch the destination folder's permissions.
+    # While in case of extracting zip into something like /tmp/ with mode: 755, it overrides the permissions of /tmp to 755.
+    # This step will create a direcoty specific to this role to extract files to
     - name: Create directory for extracted files
       file:
         path: "{{ miarec_download_dir }}/miarec-{{ miarec_version }}"
