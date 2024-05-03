@@ -56,7 +56,6 @@
       args:
         creates: "{{ deploy_helper.new_release_path }}/miarec"
 
-
 # --------------------------------------------------
 # Create required directory
 # --------------------------------------------------
