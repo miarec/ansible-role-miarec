@@ -16,36 +16,46 @@
     path: "{{ deploy_helper.new_release_path }}/miarec"
   register: miarec_bin_exists
 
-
-- name: Add an unfinished file, to allow cleanup on successful finalize
-  file:
-    path: '{{ deploy_helper.new_release_path }}/{{ deploy_helper.unfinished_filename }}'
-    state: touch
-    mode: '0644'
+- name: Download and extract source package.
   when: not miarec_bin_exists.stat.exists
+  block:
 
-- name: Download miarec tarball
-  get_url:
-    url: "{{ miarec_download_base_url }}/{{ miarec_tarball_file }}"
-    dest: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
-    mode: '0644'
-  when: not miarec_bin_exists.stat.exists
+    - name: Add an unfinished file, to allow cleanup on successful finalize
+      file:
+        path: '{{ deploy_helper.new_release_path }}/{{ deploy_helper.unfinished_filename }}'
+        state: touch
+        mode: '0644'
 
 
-- name: Untar the source package
-  unarchive:
-    src: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
-    dest: "{{ miarec_download_dir }}/"
-    creates: "{{ miarec_download_dir }}/miarec-{{ miarec_version }}/miarec"
-    copy: false
-    mode: u=rwX,g=rX,o=rX
-  when: not miarec_bin_exists.stat.exists
+    - name: Download miarec tarball
+      get_url:
+        url: "{{ miarec_download_base_url }}/{{ miarec_tarball_file }}"
+        dest: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
+        mode: '0644'
 
-- name: Move miarec files to releases folder
-  shell: "mv {{ miarec_download_dir }}/miarec-{{ miarec_version }}/* {{ deploy_helper.new_release_path }}/"
-  args:
-    creates: "{{ deploy_helper.new_release_path }}/miarec"
-  when: not miarec_bin_exists.stat.exists
+    # In some cases, unarchive will change permissions of destination folder,
+    # to prevent permissions issues with directories that might be shared, like /tmp
+    # we will create a direcoty specific to this role to extract files to
+    - name: Create directory for extracted files
+      file:
+        path: "{{ miarec_download_dir }}/miarec-{{ miarec_version }}"
+        state: directory
+        mode: u=rwX,g=rX,o=rX
+      register: _extract_dir
+
+    - name: Untar the source package
+      unarchive:
+        src: "{{ miarec_download_dir }}/{{ miarec_tarball_file }}"
+        dest: "{{ _extract_dir.path }}"
+        creates: "{{ _extract_dir.path }}/miarec-{{ miarec_version }}/miarec"
+        copy: false
+        mode: u=rwX,g=rX,o=rX
+
+    - name: Move miarec files to releases folder
+      shell: "mv {{ _extract_dir.path }}/miarec-{{ miarec_version }}/* {{ deploy_helper.new_release_path }}/"
+      args:
+        creates: "{{ deploy_helper.new_release_path }}/miarec"
+
 
 # --------------------------------------------------
 # Create required directory
