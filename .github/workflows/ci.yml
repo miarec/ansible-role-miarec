@@ -7,6 +7,8 @@ name: Ansible role testing
             - master
         paths-ignore:
             - '**.md'
+    schedule:
+        - cron: "30 7 1 * *"
 
 jobs:
     lint:

@@ -5,7 +5,7 @@ driver:
   name: docker
 platforms:
   - name: instance
-    image: miarecdevops/docker-${MOLECULE_DISTRO:-ubuntu2204}-init:latest
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2204}-systemd:latest
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
