@@ -19,7 +19,7 @@ provisioner:
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
-    MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2024.4.5.0"}
+    MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2024.6.2.0"}
 
 verifier:
   name: testinfra
