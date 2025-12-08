@@ -9,12 +9,10 @@ galaxy_info:
   platforms:
     - name: Ubuntu
       versions:
-        - focal
         - jammy
+        - noble
     - name: EL
       versions:
-        - '7'
-        - '8'
         - '9'
   galaxy_tags:
     - miarec

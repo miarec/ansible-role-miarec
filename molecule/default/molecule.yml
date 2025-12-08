@@ -1,10 +1,12 @@
 ---
 dependency:
   name: galaxy
+  options:
+    requirements-file: collections.yml
 driver:
   name: docker
 platforms:
-  - name: instance
+  - name: ansible-role-miarec
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -19,6 +21,7 @@ provisioner:
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/../
     MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2024.6.2.0"}
 
 verifier:

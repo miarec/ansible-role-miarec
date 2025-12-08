@@ -213,13 +213,13 @@
 - name: Check for SystemD
   fail:
     msg: "Only SystemD and Upstart systems are supported at the moment"
-  when: ansible_service_mgr != "upstart" and ansible_service_mgr != "systemd"
+  when: ansible_facts['service_mgr'] != "upstart" and ansible_facts['service_mgr'] != "systemd"
 
 
 - name: Check for upstart
   fail:
     msg: "MiaRec upstart script doesn't support run as unprivileged user yet"
-  when: ansible_service_mgr == "upstart" and miarec_bin_user != 'root'
+  when: ansible_facts['service_mgr'] == "upstart" and miarec_bin_user != 'root'
 
 
 - name: Install miarec service | systemd
@@ -230,7 +230,7 @@
     group: root
     mode: '0644'
   notify: Start miarec
-  when: ansible_service_mgr == "systemd"
+  when: ansible_facts['service_mgr'] == "systemd"
 
 
 - name: Install miarec service | upstart
@@ -241,14 +241,14 @@
     group: root
     mode: '0644'
   notify: Start miarec
-  when: ansible_service_mgr == "upstart"
+  when: ansible_facts['service_mgr'] == "upstart"
 
 
 - name: Enable miarec service | systemd or upstart
   service:
     name: miarec
     enabled: true
-  when: ansible_service_mgr == "systemd" or ansible_service_mgr == "upstart"
+  when: ansible_facts['service_mgr'] == "systemd" or ansible_facts['service_mgr'] == "upstart"
 
 # Important! do not start the service right now. Postpone it until deploy_helper creates symbolic link to new release folder.
 
