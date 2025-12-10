@@ -173,6 +173,52 @@
       value: 'http://{{ miarec_http_call_events_host }}/notify/call?event=stop&call_id=%{call-id}'
   notify: Restart miarec
 
+# --------------------------------------------------
+# TLS settings for PostgreSQL (SQLConfig and SQLCallsLog)
+# --------------------------------------------------
+- name: Configure PostgreSQL TLS settings in miarec.ini
+  ini_file:
+    dest: "{{ deploy_helper.new_release_path }}/miarec.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: u=rwX,g=rX,o=
+  loop:
+    - { section: 'SQLConfig', option: 'UseSSL', value: 'true' }
+    - { section: 'SQLConfig', option: 'SSLCACertificates', value: '{{ miarec_db_tls_ca_file }}' }
+    - { section: 'SQLConfig', option: 'SSLCertificate', value: '{{ miarec_db_tls_cert_file }}' }
+    - { section: 'SQLConfig', option: 'SSLPrivateKey', value: '{{ miarec_db_tls_key_file }}' }
+    - { section: 'SQLConfig', option: 'CheckHostName', value: "{{ 'true' if miarec_db_tls_check_hostname | bool else 'false' }}" }
+    - { section: 'SQLCallsLog', option: 'UseSSL', value: 'true' }
+    - { section: 'SQLCallsLog', option: 'SSLCACertificates', value: '{{ miarec_db_tls_ca_file }}' }
+    - { section: 'SQLCallsLog', option: 'SSLCertificate', value: '{{ miarec_db_tls_cert_file }}' }
+    - { section: 'SQLCallsLog', option: 'SSLPrivateKey', value: '{{ miarec_db_tls_key_file }}' }
+    - { section: 'SQLCallsLog', option: 'CheckHostName', value: "{{ 'true' if miarec_db_tls_check_hostname | bool else 'false' }}" }
+  when: miarec_db_use_ssl | bool
+  notify: Restart miarec
+
+# --------------------------------------------------
+# TLS settings for Redis (RedisCallsLog)
+# --------------------------------------------------
+- name: Configure Redis TLS settings in miarec.ini
+  ini_file:
+    dest: "{{ deploy_helper.new_release_path }}/miarec.ini"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: u=rwX,g=rX,o=
+  loop:
+    - { section: 'RedisCallsLog', option: 'UseSSL', value: 'true' }
+    - { section: 'RedisCallsLog', option: 'SSLCACertificates', value: '{{ miarec_redis_tls_ca_file }}' }
+    - { section: 'RedisCallsLog', option: 'SSLCertificate', value: '{{ miarec_redis_tls_cert_file }}' }
+    - { section: 'RedisCallsLog', option: 'SSLPrivateKey', value: '{{ miarec_redis_tls_key_file }}' }
+    - { section: 'RedisCallsLog', option: 'CheckHostName', value: "{{ 'true' if miarec_redis_tls_check_hostname | bool else 'false' }}" }
+  when: miarec_redis_use_ssl | bool
+  notify: Restart miarec
 
 # --------------------------------------------------
 # Custom configuration file in INI file

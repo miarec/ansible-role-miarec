@@ -16,6 +16,9 @@
     - set_fact:
         miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
 
+        miarec_bin_group: "{{ lookup('env', 'MIAREC_BIN_GROUP') }}"
+        miarec_bin_user: "{{ lookup('env', 'MIAREC_BIN_USER') }}"
+
   roles:
     - role: ansible-role-miarec
       tags:

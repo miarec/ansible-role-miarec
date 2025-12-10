@@ -16,6 +16,24 @@ miarec_db_password: password
 miarec_redis_host: 127.0.0.1
 miarec_redis_port: 6379
 
+# -----------------------------
+# PostgreSQL TLS settings
+# -----------------------------
+miarec_db_use_ssl: false
+miarec_db_tls_ca_file: ""           # CA certificate to validate server
+miarec_db_tls_cert_file: ""         # Client certificate for mTLS
+miarec_db_tls_key_file: ""          # Client private key for mTLS
+miarec_db_tls_check_hostname: false # Whether to verify server hostname
+
+# -----------------------------
+# Redis TLS settings
+# -----------------------------
+miarec_redis_use_ssl: false
+miarec_redis_tls_ca_file: ""           # CA certificate to validate server
+miarec_redis_tls_cert_file: ""         # Client certificate for mTLS
+miarec_redis_tls_key_file: ""          # Client private key for mTLS
+miarec_redis_tls_check_hostname: false # Whether to verify server hostname
+
 miarec_bin_user: root
 miarec_bin_group: root
 miarec_bin_umask: "0002"

@@ -2,11 +2,11 @@
 dependency:
   name: galaxy
   options:
-    requirements-file: collections.yml
+    requirements-file: ../default/collections.yml
 driver:
   name: docker
 platforms:
-  - name: ansible-role-miarec
+  - name: miarec-tls-${MOLECULE_DISTRO:-ubuntu2404}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -18,7 +18,6 @@ platforms:
 provisioner:
   name: ansible
   playbooks:
-    prepare: prepare.yml
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
@@ -32,3 +31,13 @@ verifier:
   options:
     s: true
     verbose: true
+
+scenario:
+  name: tls
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy

@@ -1,0 +1,186 @@
+---
+# Install and Configure Redis with TLS
+
+- name: Redis | Install EPEL | CentOS
+  package:
+    name: epel-release
+    state: present
+  when: ansible_facts['distribution'] == "CentOS"
+
+- name: Redis | Install Redis package
+  package:
+    name: redis
+    state: present
+    update_cache: true
+
+- name: Redis | Define service name
+  set_fact:
+    redis_service_name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
+
+# Generate Server Certificates
+- name: Redis | Create TLS directory
+  file:
+    path: /etc/redis/tls
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0750"
+
+- name: Redis | Generate server private key
+  command: openssl genrsa -out /etc/redis/tls/server.key 2048
+  args:
+    creates: /etc/redis/tls/server.key
+
+- name: Redis | Create server certificate config
+  copy:
+    content: |
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = localhost
+
+      [v3_req]
+      keyUsage = keyEncipherment, dataEncipherment
+      extendedKeyUsage = serverAuth
+      subjectAltName = @alt_names
+
+      [alt_names]
+      DNS.1 = localhost
+      IP.1 = 127.0.0.1
+    dest: /etc/redis/tls/server.cnf
+    mode: "0644"
+
+- name: Redis | Generate server CSR
+  command: >
+    openssl req -new
+    -key /etc/redis/tls/server.key
+    -out /etc/redis/tls/server.csr
+    -config /etc/redis/tls/server.cnf
+  args:
+    creates: /etc/redis/tls/server.csr
+
+- name: Redis | Sign server certificate with CA
+  command: >
+    openssl x509 -req
+    -in /etc/redis/tls/server.csr
+    -CA /etc/miarec/tls/ca.crt
+    -CAkey /etc/miarec/tls/ca.key
+    -CAcreateserial
+    -out /etc/redis/tls/server.crt
+    -days 365 -sha256
+    -extensions v3_req
+    -extfile /etc/redis/tls/server.cnf
+  args:
+    creates: /etc/redis/tls/server.crt
+
+- name: Redis | Copy CA certificate
+  copy:
+    src: /etc/miarec/tls/ca.crt
+    dest: /etc/redis/tls/ca.crt
+    mode: "0644"
+    remote_src: true
+
+- name: Redis | Set server key permissions
+  file:
+    path: /etc/redis/tls/server.key
+    mode: "0600"
+    owner: redis
+    group: redis
+
+- name: Redis | Set server certificate permissions
+  file:
+    path: /etc/redis/tls/server.crt
+    mode: "0644"
+    owner: redis
+    group: redis
+
+# Start Redis to detect config file location
+- name: Redis | Start Redis service temporarily
+  systemd:
+    name: "{{ redis_service_name }}"
+    state: started
+    enabled: true
+
+- name: Redis | Get config file location from redis-cli INFO
+  shell: "set -o pipefail && redis-cli INFO | grep config_file | cut -d: -f2 | tr -d '\\r'"
+  args:
+    executable: /bin/bash
+  register: _redis_info_config
+  changed_when: false
+
+- name: Redis | Set config path from redis-cli INFO
+  set_fact:
+    redis_conf_path: "{{ _redis_info_config.stdout | trim }}"
+
+- name: Redis | Fail if config file not detected
+  fail:
+    msg: "Could not detect Redis config file from redis-cli INFO"
+  when: redis_conf_path | length == 0
+
+# Configure Redis for TLS
+- name: Redis | Configure TLS port
+  lineinfile:
+    path: "{{ redis_conf_path }}"
+    regexp: "^#?\\s*tls-port\\s+"
+    line: "tls-port 6379"
+
+- name: Redis | Disable non-TLS port
+  lineinfile:
+    path: "{{ redis_conf_path }}"
+    regexp: "^port\\s+"
+    line: "port 0"
+
+- name: Redis | Configure TLS certificate file
+  lineinfile:
+    path: "{{ redis_conf_path }}"
+    regexp: "^#?\\s*tls-cert-file\\s+"
+    line: "tls-cert-file /etc/redis/tls/server.crt"
+
+- name: Redis | Configure TLS key file
+  lineinfile:
+    path: "{{ redis_conf_path }}"
+    regexp: "^#?\\s*tls-key-file\\s+"
+    line: "tls-key-file /etc/redis/tls/server.key"
+
+- name: Redis | Configure TLS CA certificate
+  lineinfile:
+    path: "{{ redis_conf_path }}"
+    regexp: "^#?\\s*tls-ca-cert-file\\s+"
+    line: "tls-ca-cert-file /etc/redis/tls/ca.crt"
+
+- name: Redis | Configure TLS auth clients (require client certificates)
+  lineinfile:
+    path: "{{ redis_conf_path }}"
+    regexp: "^#?\\s*tls-auth-clients\\s+"
+    line: "tls-auth-clients yes"
+
+- name: Redis | Restart Redis service with TLS
+  systemd:
+    name: "{{ redis_service_name }}"
+    state: restarted
+    enabled: true
+
+# Verify TLS configuration
+- name: Redis | Verify TLS connection with client certificate succeeds
+  command: >
+    redis-cli
+    --tls
+    --cacert /etc/miarec/tls/ca.crt
+    --cert /etc/miarec/tls/client.crt
+    --key /etc/miarec/tls/client.key
+    -h 127.0.0.1
+    -p 6379
+    PING
+  register: _redis_tls_test
+  changed_when: false
+
+- name: Redis | Verify TLS connection succeeded
+  assert:
+    that:
+      - _redis_tls_test.rc == 0
+      - "'PONG' in _redis_tls_test.stdout"
+    fail_msg: "Redis TLS connection with client certificate failed"
+    success_msg: "Redis TLS connection with client certificate succeeded"
