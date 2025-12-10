@@ -11,10 +11,13 @@
             update_cache: true
             cache_valid_time: 600
           changed_when: false
-          when: ansible_os_family == "Debian"
+          when: ansible_facts['os_family'] == "Debian"
 
     - set_fact:
         miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
+
+        miarec_bin_group: "{{ lookup('env', 'MIAREC_BIN_GROUP') }}"
+        miarec_bin_user: "{{ lookup('env', 'MIAREC_BIN_USER') }}"
 
   roles:
     - role: ansible-role-miarec
