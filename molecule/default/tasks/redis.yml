@@ -1,0 +1,18 @@
+---
+# Install Redis from system packages
+
+- name: Redis | Install Redis package
+  package:
+    name: redis
+    state: present
+    update_cache: true
+
+- name: Redis | Define service name
+  set_fact:
+    redis_service_name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
+
+- name: Redis | Start and enable Redis service
+  systemd:
+    name: "{{ redis_service_name }}"
+    state: started
+    enabled: true

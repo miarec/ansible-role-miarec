@@ -1,0 +1,104 @@
+---
+# Install and Configure PostgreSQL from system packages
+# Modeled after ../ansible-role-miarecweb/molecule/default/tasks/postgresql.yml
+
+# ============ Debian ============
+- name: PostgreSQL | Update apt cache | Debian
+  apt:
+    update_cache: true
+    cache_valid_time: 600
+  changed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: PostgreSQL | Install PostgreSQL packages | Debian
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - postgresql
+    - postgresql-contrib
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: PostgreSQL | Get cluster info | Debian
+  command: pg_lsclusters -h
+  register: _pg_clusters
+  changed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: PostgreSQL | Set pg_hba_path fact | Debian
+  set_fact:
+    _pg_hba_path: "/etc/postgresql/{{ _pg_clusters.stdout_lines[0].split()[0] }}/{{ _pg_clusters.stdout_lines[0].split()[1] }}/pg_hba.conf"
+  when: ansible_facts['os_family'] == "Debian"
+
+# ============ RedHat ============
+- name: PostgreSQL | Install PostgreSQL packages | RedHat
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - postgresql-server
+    - postgresql-contrib
+  register: _postgresql_install
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: PostgreSQL | Initialize the database | RedHat
+  command: postgresql-setup --initdb
+  when:
+    - ansible_facts['os_family'] == "RedHat"
+    - _postgresql_install.changed
+  changed_when: true
+
+- name: PostgreSQL | Set pg_hba_path fact | RedHat
+  set_fact:
+    _pg_hba_path: "/var/lib/pgsql/data/pg_hba.conf"
+  when: ansible_facts['os_family'] == "RedHat"
+
+# ============ Common ============
+- name: PostgreSQL | Configure pg_hba.conf
+  copy:
+    content: |
+      # TYPE  DATABASE        USER            ADDRESS                 METHOD
+      local   all             all                                     peer
+      host    miarecdb        miarec          127.0.0.1/32            md5
+      host    all             all             ::1/128                 md5
+    dest: "{{ _pg_hba_path }}"
+    mode: "0640"
+    owner: postgres
+    group: postgres
+
+- name: PostgreSQL | Start PostgreSQL service
+  service:
+    name: postgresql
+    state: started
+
+- name: PostgreSQL | Create user and database
+  vars:
+    ansible_shell_allow_world_readable_temp: true
+  block:
+    - name: PostgreSQL | Check if user exists
+      command: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='miarec'"
+      become: true
+      become_user: postgres
+      register: _pg_user_exists
+      changed_when: false
+
+    - name: PostgreSQL | Create user
+      command: psql -c "CREATE USER miarec WITH PASSWORD 'password';"
+      become: true
+      become_user: postgres
+      when: _pg_user_exists.stdout != "1"
+      changed_when: true
+
+    - name: PostgreSQL | Check if database exists
+      command: psql -tAc "SELECT 1 FROM pg_database WHERE datname='miarecdb'"
+      become: true
+      become_user: postgres
+      register: _pg_db_exists
+      changed_when: false
+
+    - name: PostgreSQL | Create database
+      command: psql -c "CREATE DATABASE miarecdb OWNER miarec;"
+      become: true
+      become_user: postgres
+      when: _pg_db_exists.stdout != "1"
+      changed_when: true

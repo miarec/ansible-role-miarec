@@ -1,5 +1,4 @@
-# IN PROGRESS
-
+import json
 import os
 import testinfra.utils.ansible_runner
 
@@ -56,3 +55,22 @@ def test_socket(host):
     for socket in sockets:
         s = host.socket(socket)
         assert s.is_listening
+
+
+def test_health_endpoint(host):
+    """Verify /health endpoint returns healthy status for dependencies."""
+    # MiaRec REST API listens on port 6088
+    result = host.run("curl -fsS http://localhost:6088/health")
+    assert result.rc == 0, f"Health endpoint not reachable: {result.stderr}"
+
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise AssertionError(
+            f"Health endpoint response is not valid JSON: {exc}\n"
+            f"Response: {result.stdout}"
+        )
+
+    assert payload.get("status") == "ok", f"Unexpected overall status: {payload}"
+    assert payload.get("database") == "ok", f"Unexpected database status: {payload}"
+    assert payload.get("redis") == "ok", f"Unexpected Redis status: {payload}"
