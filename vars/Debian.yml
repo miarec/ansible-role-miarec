@@ -1,2 +1,2 @@
 ---
-miarec_tarball_file: "miarec-{{ miarec_version }}-ubuntu-{{ ansible_distribution_release }}.x86_64.tar.gz"
+miarec_tarball_file: "miarec-{{ miarec_version }}-ubuntu-{{ ansible_facts['distribution_release'] }}.{{ ansible_facts['architecture'] }}.tar.gz"

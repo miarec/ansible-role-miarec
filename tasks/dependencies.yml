@@ -9,7 +9,7 @@
     - libpcap-dev
     - libpq-dev
     - openssl
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] == "Debian"
 
 - name: Install dependencies | RedHat
   package:
@@ -19,4 +19,4 @@
     - libpcap
     - postgresql-libs
     - openssl
-  when: ansible_os_family == "RedHat"
+  when: ansible_facts['os_family'] == "RedHat"
