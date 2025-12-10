@@ -11,7 +11,7 @@
             update_cache: true
             cache_valid_time: 600
           changed_when: false
-          when: ansible_os_family == "Debian"
+          when: ansible_facts['os_family'] == "Debian"
 
     - set_fact:
         miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
