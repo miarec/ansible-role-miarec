@@ -1,0 +1,19 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+
+  tasks:
+    # RedHat 9 images have curl-minimal which conflicts with curl
+    # curl-minimal is sufficient for our health endpoint testing
+    - name: Install curl for health endpoint testing | Debian
+      package:
+        name: curl
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Include PostgreSQL setup
+      include_tasks: tasks/postgresql.yml
+
+    - name: Include Redis setup
+      include_tasks: tasks/redis.yml
