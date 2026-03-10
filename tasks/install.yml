@@ -4,7 +4,7 @@
 # --------------------------------------------------
 - name: Create release directory
   file:
-    path: '{{ deploy_helper.new_release_path }}'
+    path: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}'
     state: directory
     mode: u=rwX,g=rX,o=rX
 
@@ -13,7 +13,7 @@
 # --------------------------------------------------
 - name: Verify miarec binary presense
   stat:
-    path: "{{ deploy_helper.new_release_path }}/miarec"
+    path: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec'
   register: miarec_bin_exists
 
 - name: Download and extract source package.
@@ -22,7 +22,7 @@
 
     - name: Add an unfinished file, to allow cleanup on successful finalize
       file:
-        path: '{{ deploy_helper.new_release_path }}/{{ deploy_helper.unfinished_filename }}'
+        path: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/{{ ansible_facts["deploy_helper"]["unfinished_filename"] }}'
         state: touch
         mode: '0644'
 
@@ -54,9 +54,9 @@
         mode: u=rwX,g=rX,o=rX
 
     - name: Move miarec files to releases folder
-      shell: "mv {{ _extract_dir.path }}/miarec-{{ miarec_version }}/* {{ deploy_helper.new_release_path }}/"
+      shell: 'mv {{ _extract_dir.path }}/miarec-{{ miarec_version }}/* {{ ansible_facts["deploy_helper"]["new_release_path"] }}/'
       args:
-        creates: "{{ deploy_helper.new_release_path }}/miarec"
+        creates: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec'
 
 # --------------------------------------------------
 # Create required directory
@@ -106,7 +106,7 @@
 # --------------------------------------------------
 - name: Configure miarec.ini file
   ini_file:
-    dest: "{{ deploy_helper.new_release_path }}/miarec.ini"
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
     section: "{{ item.section }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
@@ -173,13 +173,59 @@
       value: 'http://{{ miarec_http_call_events_host }}/notify/call?event=stop&call_id=%{call-id}'
   notify: Restart miarec
 
+# --------------------------------------------------
+# TLS settings for PostgreSQL (SQLConfig and SQLCallsLog)
+# --------------------------------------------------
+- name: Configure PostgreSQL TLS settings in miarec.ini
+  ini_file:
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: u=rwX,g=rX,o=
+  loop:
+    - { section: 'SQLConfig', option: 'UseSSL', value: 'true' }
+    - { section: 'SQLConfig', option: 'SSLCACertificates', value: '{{ miarec_db_tls_ca_file }}' }
+    - { section: 'SQLConfig', option: 'SSLCertificate', value: '{{ miarec_db_tls_cert_file }}' }
+    - { section: 'SQLConfig', option: 'SSLPrivateKey', value: '{{ miarec_db_tls_key_file }}' }
+    - { section: 'SQLConfig', option: 'CheckHostName', value: "{{ 'true' if miarec_db_tls_check_hostname | bool else 'false' }}" }
+    - { section: 'SQLCallsLog', option: 'UseSSL', value: 'true' }
+    - { section: 'SQLCallsLog', option: 'SSLCACertificates', value: '{{ miarec_db_tls_ca_file }}' }
+    - { section: 'SQLCallsLog', option: 'SSLCertificate', value: '{{ miarec_db_tls_cert_file }}' }
+    - { section: 'SQLCallsLog', option: 'SSLPrivateKey', value: '{{ miarec_db_tls_key_file }}' }
+    - { section: 'SQLCallsLog', option: 'CheckHostName', value: "{{ 'true' if miarec_db_tls_check_hostname | bool else 'false' }}" }
+  when: miarec_db_use_ssl | bool
+  notify: Restart miarec
+
+# --------------------------------------------------
+# TLS settings for Redis (RedisCallsLog)
+# --------------------------------------------------
+- name: Configure Redis TLS settings in miarec.ini
+  ini_file:
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: u=rwX,g=rX,o=
+  loop:
+    - { section: 'RedisCallsLog', option: 'UseSSL', value: 'true' }
+    - { section: 'RedisCallsLog', option: 'SSLCACertificates', value: '{{ miarec_redis_tls_ca_file }}' }
+    - { section: 'RedisCallsLog', option: 'SSLCertificate', value: '{{ miarec_redis_tls_cert_file }}' }
+    - { section: 'RedisCallsLog', option: 'SSLPrivateKey', value: '{{ miarec_redis_tls_key_file }}' }
+    - { section: 'RedisCallsLog', option: 'CheckHostName', value: "{{ 'true' if miarec_redis_tls_check_hostname | bool else 'false' }}" }
+  when: miarec_redis_use_ssl | bool
+  notify: Restart miarec
 
 # --------------------------------------------------
 # Custom configuration file in INI file
 # --------------------------------------------------
 - name: Custom miarec.ini file settings
   ini_file:
-    dest: "{{ deploy_helper.new_release_path }}/miarec.ini"
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
     section: "{{ item.section }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
@@ -193,7 +239,7 @@
 # --------------------------------------------------
 - name: Custom call_start.sql configuration
   lineinfile:
-    dest: "{{ deploy_helper.new_release_path }}/sqlconfig/call_start.sql"
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/sqlconfig/call_start.sql'
     insertafter: EOF
     line: "{{ miarec_custom_call_start_sql }}"
   when: miarec_custom_call_start_sql != ''
@@ -201,7 +247,7 @@
 
 - name: Custom call_stop.sql configuration
   lineinfile:
-    dest: "{{ deploy_helper.new_release_path }}/sqlconfig/call_stop.sql"
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/sqlconfig/call_stop.sql'
     insertafter: EOF
     line: "{{ miarec_custom_call_stop_sql }}"
   when: miarec_custom_call_stop_sql != ''

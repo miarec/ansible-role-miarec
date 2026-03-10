@@ -1,0 +1,101 @@
+---
+# Generate TLS certificates for PostgreSQL and Redis testing
+
+- name: Install OpenSSL
+  package:
+    name: openssl
+    state: present
+
+- name: Create miarec TLS directory
+  file:
+    path: /etc/miarec/tls
+    state: directory
+    owner: root
+    group: miarec
+    mode: "0750"
+
+# Generate CA
+- name: Generate CA private key
+  command: openssl genrsa -out /etc/miarec/tls/ca.key 4096
+  args:
+    creates: /etc/miarec/tls/ca.key
+
+- name: Set CA key permissions
+  file:
+    path: /etc/miarec/tls/ca.key
+    mode: "0600"
+
+- name: Generate CA certificate
+  command: >
+    openssl req -x509 -new -nodes
+    -key /etc/miarec/tls/ca.key
+    -sha256 -days 365
+    -out /etc/miarec/tls/ca.crt
+    -subj "/CN=Test-CA"
+  args:
+    creates: /etc/miarec/tls/ca.crt
+
+- name: Set CA certificate permissions
+  file:
+    path: /etc/miarec/tls/ca.crt
+    mode: "0644"
+
+# Generate Client Certificate
+- name: Generate client private key
+  command: openssl genrsa -out /etc/miarec/tls/client.key 2048
+  args:
+    creates: /etc/miarec/tls/client.key
+
+- name: Create client certificate config
+  copy:
+    content: |
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = miarec
+
+      [v3_req]
+      keyUsage = digitalSignature
+      extendedKeyUsage = clientAuth
+    dest: /etc/miarec/tls/client.cnf
+    mode: "0644"
+
+- name: Generate client CSR
+  command: >
+    openssl req -new
+    -key /etc/miarec/tls/client.key
+    -out /etc/miarec/tls/client.csr
+    -config /etc/miarec/tls/client.cnf
+  args:
+    creates: /etc/miarec/tls/client.csr
+
+- name: Sign client certificate with CA
+  command: >
+    openssl x509 -req
+    -in /etc/miarec/tls/client.csr
+    -CA /etc/miarec/tls/ca.crt
+    -CAkey /etc/miarec/tls/ca.key
+    -CAcreateserial
+    -out /etc/miarec/tls/client.crt
+    -days 365 -sha256
+    -extensions v3_req
+    -extfile /etc/miarec/tls/client.cnf
+  args:
+    creates: /etc/miarec/tls/client.crt
+
+- name: Set client key permissions
+  file:
+    path: /etc/miarec/tls/client.key
+    owner: root
+    group: miarec
+    mode: "0640"
+
+- name: Set client certificate permissions
+  file:
+    path: /etc/miarec/tls/client.crt
+    owner: root
+    group: miarec
+    mode: "0644"

@@ -1,0 +1,108 @@
+---
+# ---------------------------------------------
+# Validate TLS certificate files
+# ---------------------------------------------
+
+# PostgreSQL TLS validation
+- name: Validate PostgreSQL TLS CA file exists
+  stat:
+    path: "{{ miarec_db_tls_ca_file }}"
+  register: _db_tls_ca_stat
+  when:
+    - miarec_db_use_ssl | bool
+    - miarec_db_tls_ca_file | length > 0
+
+- name: Fail if PostgreSQL TLS CA file not found
+  fail:
+    msg: "PostgreSQL TLS CA file not found: {{ miarec_db_tls_ca_file }}"
+  when:
+    - miarec_db_use_ssl | bool
+    - miarec_db_tls_ca_file | length > 0
+    - _db_tls_ca_stat.stat is defined
+    - not _db_tls_ca_stat.stat.exists
+
+- name: Validate PostgreSQL TLS client certificate file exists
+  stat:
+    path: "{{ miarec_db_tls_cert_file }}"
+  register: _db_tls_cert_stat
+  when:
+    - miarec_db_use_ssl | bool
+    - miarec_db_tls_cert_file | length > 0
+
+- name: Fail if PostgreSQL TLS client certificate file not found
+  fail:
+    msg: "PostgreSQL TLS client certificate file not found: {{ miarec_db_tls_cert_file }}"
+  when:
+    - miarec_db_use_ssl | bool
+    - miarec_db_tls_cert_file | length > 0
+    - _db_tls_cert_stat.stat is defined
+    - not _db_tls_cert_stat.stat.exists
+
+- name: Validate PostgreSQL TLS client key file exists
+  stat:
+    path: "{{ miarec_db_tls_key_file }}"
+  register: _db_tls_key_stat
+  when:
+    - miarec_db_use_ssl | bool
+    - miarec_db_tls_key_file | length > 0
+
+- name: Fail if PostgreSQL TLS client key file not found
+  fail:
+    msg: "PostgreSQL TLS client key file not found: {{ miarec_db_tls_key_file }}"
+  when:
+    - miarec_db_use_ssl | bool
+    - miarec_db_tls_key_file | length > 0
+    - _db_tls_key_stat.stat is defined
+    - not _db_tls_key_stat.stat.exists
+
+# Redis TLS validation
+- name: Validate Redis TLS CA file exists
+  stat:
+    path: "{{ miarec_redis_tls_ca_file }}"
+  register: _redis_tls_ca_stat
+  when:
+    - miarec_redis_use_ssl | bool
+    - miarec_redis_tls_ca_file | length > 0
+
+- name: Fail if Redis TLS CA file not found
+  fail:
+    msg: "Redis TLS CA file not found: {{ miarec_redis_tls_ca_file }}"
+  when:
+    - miarec_redis_use_ssl | bool
+    - miarec_redis_tls_ca_file | length > 0
+    - _redis_tls_ca_stat.stat is defined
+    - not _redis_tls_ca_stat.stat.exists
+
+- name: Validate Redis TLS client certificate file exists
+  stat:
+    path: "{{ miarec_redis_tls_cert_file }}"
+  register: _redis_tls_cert_stat
+  when:
+    - miarec_redis_use_ssl | bool
+    - miarec_redis_tls_cert_file | length > 0
+
+- name: Fail if Redis TLS client certificate file not found
+  fail:
+    msg: "Redis TLS client certificate file not found: {{ miarec_redis_tls_cert_file }}"
+  when:
+    - miarec_redis_use_ssl | bool
+    - miarec_redis_tls_cert_file | length > 0
+    - _redis_tls_cert_stat.stat is defined
+    - not _redis_tls_cert_stat.stat.exists
+
+- name: Validate Redis TLS client key file exists
+  stat:
+    path: "{{ miarec_redis_tls_key_file }}"
+  register: _redis_tls_key_stat
+  when:
+    - miarec_redis_use_ssl | bool
+    - miarec_redis_tls_key_file | length > 0
+
+- name: Fail if Redis TLS client key file not found
+  fail:
+    msg: "Redis TLS client key file not found: {{ miarec_redis_tls_key_file }}"
+  when:
+    - miarec_redis_use_ssl | bool
+    - miarec_redis_tls_key_file | length > 0
+    - _redis_tls_key_stat.stat is defined
+    - not _redis_tls_key_stat.stat.exists
