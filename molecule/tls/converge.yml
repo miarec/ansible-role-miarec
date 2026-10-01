@@ -9,7 +9,7 @@
 
         # MiaRec group configuration (required for TLS certificate access)
         miarec_bin_group: "{{ lookup('env', 'MIAREC_BIN_GROUP') }}"
-        miarec_bin_user: "{{ lookup('env', 'MIAREC_BIN_GROUP') }}"
+        miarec_bin_user: "{{ lookup('env', 'MIAREC_BIN_USER') }}"
 
     - name: Update apt cache | Debian
       apt:
