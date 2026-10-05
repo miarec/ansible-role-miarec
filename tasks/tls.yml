@@ -1,0 +1,48 @@
+---
+# Upload the TLS files from the Ansible control machine. A file is uploaded
+# when its miarec_*_tls_*_src variable is set. Leave the variable empty when
+# the file is already on the host, for example when another tool manages it.
+#
+# All files are owned by root. Certificates are world readable (0644). Private
+# keys are readable by root and miarec_bin_group only (0640). The PostgreSQL
+# and Redis client often share one CA file. The list is deduplicated by
+# destination, so the shared file is uploaded once.
+
+- name: Upload TLS files
+  vars:
+    _miarec_db_tls_files:
+      - { src: "{{ miarec_db_tls_ca_file_src }}", dest: "{{ miarec_db_tls_ca_file }}" }
+      - { src: "{{ miarec_db_tls_cert_file_src }}", dest: "{{ miarec_db_tls_cert_file }}" }
+      - { src: "{{ miarec_db_tls_key_file_src }}", dest: "{{ miarec_db_tls_key_file }}", private: true }
+    _miarec_redis_tls_files:
+      - { src: "{{ miarec_redis_tls_ca_file_src }}", dest: "{{ miarec_redis_tls_ca_file }}" }
+      - { src: "{{ miarec_redis_tls_cert_file_src }}", dest: "{{ miarec_redis_tls_cert_file }}" }
+      - { src: "{{ miarec_redis_tls_key_file_src }}", dest: "{{ miarec_redis_tls_key_file }}", private: true }
+    _miarec_tls_files: >-
+      {{
+        (
+          (_miarec_db_tls_files if miarec_db_use_ssl | bool else [])
+          + (_miarec_redis_tls_files if miarec_redis_use_ssl | bool else [])
+        ) | selectattr('src') | unique | list
+      }}
+  block:
+    - name: Create TLS directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: "{{ miarec_bin_group }}"
+        mode: "0750"
+      loop: "{{ _miarec_tls_files | map(attribute='dest') | map('dirname') | unique | list }}"
+
+    - name: Upload TLS certificates and private keys
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: "{{ miarec_bin_group }}"
+        mode: "{{ '0640' if item.private | default(false) | bool else '0644' }}"
+      loop: "{{ _miarec_tls_files }}"
+      loop_control:
+        label: "{{ item.src | basename }} -> {{ item.dest }}"
+      notify: Restart miarec

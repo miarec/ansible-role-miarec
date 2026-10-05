@@ -39,6 +39,16 @@
   when: miarec_bin_user != 'root'
 
 # --------------------------------------------------
+# Upload TLS files (optional)
+# A file is uploaded when its *_src variable is set. The private keys get
+# the group created above.
+# --------------------------------------------------
+- name: Upload TLS files
+  import_tasks: tls.yml
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
+  become: true
+
+# --------------------------------------------------
 # Configure TLS certificate permissions
 # When TLS is enabled with client certificates, ensure the
 # certificate files are readable by the miarec_bin_group
