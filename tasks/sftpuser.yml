@@ -93,6 +93,13 @@
 # With SGID (sticky bit), new files will be owned by the same group as a parent's directory,
 # i.e. file will be owned by apache:miarec rather than by apache:apache.
 # This way, the other services within the same group can still have access to those files.
+#
+# When this sub-directory is miarec_recordings_dir, the "Create recordings directory" task
+# in install.yml already created it, with owner miarec_bin_user, group miarec_bin_group, and
+# mode 2775. This task then skips it, so that the two tasks don't change its owner back and
+# forth on every run. The sftp user can write to it when miarec_sftp_group is miarec_bin_group.
+# sshd checks the owner and mode of the chroot and its parents only, not of the
+# directories inside the chroot.
 # ------------------------------------------------------------
 - name: Create a sub-directory inside sftpuser's home dir
   file:
@@ -101,6 +108,7 @@
     group: '{{ miarec_sftp_group }}'
     state: directory
     mode: "2775"
+  when: (miarec_sftp_dir | regex_replace('/+$', '')) ~ '/' ~ miarec_instance_name != (miarec_recordings_dir | regex_replace('/+$', ''))
 
 # Update user password, if specified.
 - name: Update sftp user password
