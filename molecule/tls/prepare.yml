@@ -3,6 +3,9 @@
   hosts: all
   become: true
 
+  vars:
+    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
+
   tasks:
     # RedHat 9 images have curl-minimal which conflicts with curl
     # curl-minimal is sufficient for our health endpoint testing
@@ -12,11 +15,6 @@
         state: present
       when: ansible_facts['os_family'] == "Debian"
 
-    - name: Create miarec group
-      group:
-        name: miarec
-        state: present
-
     - name: Include TLS certificate generation tasks
       include_tasks: tasks/certificates.yml
 
@@ -25,3 +23,18 @@
 
     - name: Include Redis TLS setup tasks
       include_tasks: tasks/redis_tls.yml
+
+    # The role uploads these files from the control machine, like the
+    # production playbooks do. Move them off the host, so the test proves it.
+    - name: Fetch the TLS files that the role uploads
+      fetch:
+        src: "/etc/miarec/tls/{{ item }}"
+        dest: "{{ tls_src_dir }}/"
+        flat: true
+      loop: [ca.crt, client.crt, client.key]
+
+    - name: Remove the fetched TLS files from the host
+      file:
+        path: "/etc/miarec/tls/{{ item }}"
+        state: absent
+      loop: [ca.crt, client.crt, client.key]

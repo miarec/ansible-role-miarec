@@ -3,6 +3,9 @@
   hosts: all
   become: true
 
+  vars:
+    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
+
   pre_tasks:
     - set_fact:
         miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
@@ -19,7 +22,7 @@
       when: ansible_facts['os_family'] == "Debian"
 
   roles:
-    - role: ansible-role-miarec
+    - role: "{{ playbook_dir }}/../.." # noqa: role-name[path]
       vars:
         # PostgreSQL TLS configuration
         miarec_db_use_ssl: true
@@ -33,3 +36,11 @@
         miarec_redis_tls_cert_file: /etc/miarec/tls/client.crt
         miarec_redis_tls_key_file: /etc/miarec/tls/client.key
         miarec_redis_tls_check_hostname: false
+        # The role uploads the files from the control machine (see prepare.yml).
+        # PostgreSQL and Redis share the files, which the role uploads once.
+        miarec_db_tls_ca_file_src: "{{ tls_src_dir }}/ca.crt"
+        miarec_db_tls_cert_file_src: "{{ tls_src_dir }}/client.crt"
+        miarec_db_tls_key_file_src: "{{ tls_src_dir }}/client.key"
+        miarec_redis_tls_ca_file_src: "{{ tls_src_dir }}/ca.crt"
+        miarec_redis_tls_cert_file_src: "{{ tls_src_dir }}/client.crt"
+        miarec_redis_tls_key_file_src: "{{ tls_src_dir }}/client.key"
