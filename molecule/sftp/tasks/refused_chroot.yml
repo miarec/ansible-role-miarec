@@ -1,0 +1,29 @@
+---
+# Run tasks/sftpuser.yml with the chroot refused.dir, whose parent
+# refused.parent sshd refuses, and check that the role fails on that parent.
+- name: "Run the SFTP tasks with the chroot {{ refused.dir }}"
+  block:
+    - name: "Run the SFTP tasks of the role with the chroot {{ refused.dir }}"
+      include_role:
+        name: ansible-role-miarec
+        tasks_from: sftpuser.yml
+      vars:
+        miarec_sftp_user: "{{ refused.user }}"
+        miarec_sftp_group: "{{ refused.user }}"
+        miarec_sftp_dir: "{{ refused.dir }}"
+        miarec_sftp_pubkey_file: ""
+
+    - name: "Fail because the role accepted the chroot {{ refused.dir }}"
+      fail:
+        msg: "The role accepted '{{ refused.dir }}' as the SFTP chroot, but sshd refuses it because of '{{ refused.parent }}'."
+
+  rescue:
+    - name: "Check that the role failed on {{ refused.parent }}"
+      assert:
+        that:
+          - ansible_failed_task.name == 'Fail when sshd refuses the sftp share directory as a chroot'
+          - refused_messages | length == 1
+          - ("its parent directory '" ~ refused.parent ~ "'") in refused_messages[0]
+        fail_msg: "Expected the role to fail on '{{ refused.parent }}', but it failed with: {{ ansible_failed_result }}"
+      vars:
+        refused_messages: "{{ ansible_failed_result.results | default([]) | selectattr('failed') | map(attribute='msg') | list }}"
