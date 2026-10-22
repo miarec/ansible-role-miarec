@@ -1,0 +1,53 @@
+---
+# The role installs MiaRec before the SFTP user, so this scenario needs the
+# PostgreSQL and Redis of the default scenario.
+- name: Prepare PostgreSQL and Redis
+  import_playbook: ../default/prepare.yml
+
+- name: Prepare SFTP
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install the SSH server and client
+      package:
+        name: "{{ ['openssh-server', 'openssh-client'] if ansible_facts['os_family'] == 'Debian' else ['openssh-server', 'openssh-clients'] }}"
+        state: present
+
+    - name: Start the SSH server
+      service:
+        name: "{{ 'ssh' if ansible_facts['os_family'] == 'Debian' else 'sshd' }}"
+        state: started
+        enabled: true
+
+    # The tests log in as the SFTP user from inside the container, with this key.
+    # The role reads the public key on the Ansible controller.
+    - name: Create the SSH key of the SFTP user
+      command:
+        argv: [ssh-keygen, -q, -t, ed25519, -N, "", -f, /root/sftp_test_key]
+        creates: /root/sftp_test_key
+
+    - name: Copy the public key of the SFTP user to the controller
+      fetch:
+        src: /root/sftp_test_key.pub
+        dest: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/sftp_test_key.pub"
+        flat: true
+
+    # The parents of chroots that sshd refuses (converge.yml). This one is like
+    # /var/miarec, which the role creates as miarec_bin_user, mode 2775, when
+    # miarec_recordings_dir is under it: a user other than root owns it.
+    - name: Create a directory that a user other than root owns
+      file:
+        path: /srv/user-owned
+        owner: nobody
+        state: directory
+        mode: "0755"
+
+    # Root owns this one, but its group can write to it.
+    - name: Create a group-writable directory
+      file:
+        path: /srv/group-writable
+        owner: root
+        group: root
+        state: directory
+        mode: "0775"

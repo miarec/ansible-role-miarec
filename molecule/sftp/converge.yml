@@ -1,0 +1,61 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+
+  vars:
+    miarec_sftp_create_user: true
+    # sshd accepts a chroot only when root owns every directory on its path,
+    # and no group or other user can write to them. The only parent of
+    # /var/recordings is /var. The default, /var/miarec/recordings, has the
+    # parent /var/miarec, which the role creates as miarec_bin_user, mode 2775.
+    miarec_sftp_dir: /var/recordings
+    # The recorder's folder in the chroot. install.yml gives it to
+    # miarec_bin_user and miarec_bin_group, and the SFTP user writes to it
+    # through that group.
+    miarec_recordings_dir: "/var/recordings/{{ miarec_instance_name }}"
+    miarec_sftp_group: "{{ miarec_bin_group }}"
+    miarec_sftp_pubkey_file: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/sftp_test_key.pub"
+
+  pre_tasks:
+    - name: Install prerequisites
+      block:
+        - name: Update apt cache
+          apt:
+            update_cache: true
+            cache_valid_time: 600
+          changed_when: false
+          when: ansible_facts['os_family'] == "Debian"
+
+    - set_fact:
+        miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
+
+        miarec_bin_group: "{{ lookup('env', 'MIAREC_BIN_GROUP') }}"
+        miarec_bin_user: "{{ lookup('env', 'MIAREC_BIN_USER') }}"
+
+  roles:
+    - role: ansible-role-miarec
+      tags:
+        - miarec
+
+# The role must fail before it configures sshd for a chroot that sshd refuses.
+# Each case has its own SFTP user, so that the user's home directory doesn't
+# change between converge and idempotence.
+- name: Check that the role fails on a chroot that sshd refuses
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Run the SFTP tasks with a chroot that sshd refuses
+      include_tasks: tasks/refused_chroot.yml
+      # prepare.yml creates the parents.
+      loop:
+        - user: sftp-user-owned
+          dir: /srv/user-owned/sftp
+          parent: /srv/user-owned
+        - user: sftp-group-writable
+          dir: /srv/group-writable/sftp
+          parent: /srv/group-writable
+      loop_control:
+        loop_var: refused
+        label: "{{ refused.dir }}"

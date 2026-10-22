@@ -1,0 +1,39 @@
+---
+# The chrooted SFTP user (tasks/sftpuser.yml): a real SFTP login with a key,
+# and the check that fails on a chroot that sshd would refuse.
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../default/collections.yml
+driver:
+  name: docker
+platforms:
+  - name: miarec-sftp-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: prepare.yml
+    converge: ${MOLECULE_PLAYBOOK:-converge.yml}
+  env:
+    ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/../
+    MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2025.12.2.13"}
+    MIAREC_BIN_USER: ${MOLECULE_MIAREC_BIN_USER:-"miarec"}
+    MIAREC_BIN_GROUP: ${MOLECULE_MIAREC_BIN_GROUP:-"miarec"}
+
+verifier:
+  name: testinfra
+  options:
+    s: true
+    verbose: true
+
+scenario:
+  name: sftp

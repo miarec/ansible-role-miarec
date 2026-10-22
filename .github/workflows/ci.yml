@@ -41,6 +41,9 @@ jobs:
                     - rhel9
                 version:
                     - ${{ vars.MIAREC_VERSION }}
+                scenario:
+                    - default
+                    - sftp
 
         steps:
             - name: Check out the Repository
@@ -50,7 +53,7 @@ jobs:
               uses: astral-sh/setup-uv@v4
 
             - name: Run molecule tests
-              run: uv run molecule test
+              run: uv run molecule test -s ${{ matrix.scenario }}
               env:
                   PY_COLORS: '1'
                   ANSIBLE_FORCE_COLOR: '1'
