@@ -35,6 +35,50 @@
     mode: "2755"
 
 
+# --------------------------------------------------
+# Check the parent directories of the SFTP share directory.
+# Important: sshd checks every directory on the path to the chroot, not only the chroot.
+# Each one must be owned by root and must not be writable by group or others.
+# Otherwise, sshd accepts the SFTP user's key, then closes the session with
+# "bad ownership or modes for chroot directory component".
+#
+# This role does not change the parent directories, because other software can use them.
+# Note: the "Create recordings directory" task in install.yml creates the missing parents of
+# miarec_recordings_dir with owner miarec_bin_user and mode 2775. With the default
+# miarec_recordings_dir, /var/miarec/recordings, it creates /var/miarec this way.
+# --------------------------------------------------
+- name: Get the parent directories of the sftp share directory
+  stat:
+    path: "{{ item }}"
+  loop: "{{ miarec_sftp_dir_parents }}"
+  vars:
+    miarec_sftp_dir_parents: >-
+      {%- set parts = miarec_sftp_dir.strip('/').split('/') -%}
+      {%- set ns = namespace(paths=[]) -%}
+      {%- for i in range(1, parts | length) -%}
+      {%- set ns.paths = ns.paths + ['/' ~ parts[:i] | join('/')] -%}
+      {%- endfor -%}
+      {{ ns.paths }}
+  register: miarec_sftp_dir_parents_stat
+
+- name: Fail when sshd refuses the sftp share directory as a chroot
+  assert:
+    that:
+      - item.stat.uid == 0
+      - not item.stat.wgrp
+      - not item.stat.woth
+    fail_msg: >-
+      sshd refuses '{{ miarec_sftp_dir }}' as the chroot of the SFTP user '{{ miarec_sftp_user }}':
+      its parent directory '{{ item.item }}' has owner '{{ item.stat.pw_name }}' and mode {{ item.stat.mode }}.
+      Each parent directory of miarec_sftp_dir must be owned by root and must not be writable by group or others.
+      Change the owner and mode of '{{ item.item }}', or set miarec_sftp_dir to a directory whose parents meet these requirements,
+      for example, a directory directly under /var.
+    quiet: true
+  loop: "{{ miarec_sftp_dir_parents_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+
 # ------------------------------------------------------------
 # Create a sub-directory inside the sftpuser's home directory
 # This directory must be own by sftp user and a shared group (miarec).
