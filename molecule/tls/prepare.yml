@@ -20,6 +20,9 @@
     - name: Include TLS certificate generation tasks
       include_tasks: tasks/certificates.yml
 
+    - name: Include SIPREC TLS certificate generation tasks
+      include_tasks: tasks/siprec_certificates.yml
+
     - name: Include PostgreSQL TLS setup tasks
       include_tasks: tasks/postgresql_tls.yml
 

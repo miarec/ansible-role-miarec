@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import testinfra.utils.ansible_runner
 
 testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
@@ -55,6 +56,18 @@ def test_socket(host):
     for socket in sockets:
         s = host.socket(socket)
         assert s.is_listening
+
+
+def test_siprec_tls_is_off(host):
+    """By default, the SIPREC interface has no TLS port and no certificate."""
+    content = host.file("/opt/miarec/current/miarec.ini").content_string
+    section = re.search(r"^\[Protocol::SIPREC\]\n(.*?)(?=^\[)", content, re.M | re.S)
+    assert section, "miarec.ini has no [Protocol::SIPREC] section"
+    settings = dict(re.findall(r"^(\w+)\s*=[ \t]*(.*?)[ \t]*$", section.group(1), re.M))
+    assert settings["PortTLS"] == "0"
+    assert settings["SSLCertificate"] == ""
+    assert settings["SSLPrivateKey"] == ""
+    assert settings["SSLCACertificates"] == ""
 
 
 def test_health_endpoint(host):
