@@ -34,6 +34,20 @@ miarec_redis_tls_cert_file: ""         # Client certificate for mTLS
 miarec_redis_tls_key_file: ""          # Client private key for mTLS
 miarec_redis_tls_check_hostname: false # Whether to verify server hostname
 
+# -----------------------------
+# SIP over TLS on the SIPREC interface ([Protocol::SIPREC] in miarec.ini)
+# -----------------------------
+miarec_siprec_tls_port: 0        # PortTLS. 0 turns TLS off.
+miarec_siprec_tls_cert_file: ""  # SSLCertificate: the recorder's certificate
+miarec_siprec_tls_key_file: ""   # SSLPrivateKey: the recorder's private key
+miarec_siprec_tls_ca_file: ""    # SSLCACertificates: the CA certificates of the clients.
+                                 # Set it to require client certificates (mTLS).
+# When neither the certificate nor the key exists, the role creates a
+# self-signed certificate with this common name and subject alternative name
+# (DNS), valid for this number of days.
+miarec_siprec_tls_cert_common_name: "{{ inventory_hostname }}"
+miarec_siprec_tls_cert_days: 3650
+
 miarec_bin_user: root
 miarec_bin_group: root
 miarec_bin_umask: "0002"

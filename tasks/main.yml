@@ -39,6 +39,14 @@
   when: miarec_bin_user != 'root'
 
 # --------------------------------------------------
+# Create the certificate for SIP over TLS on the SIPREC interface
+# --------------------------------------------------
+- name: Create the SIPREC TLS certificate
+  import_tasks: siprec_tls.yml
+  when: miarec_siprec_tls_port | int != 0
+  become: true
+
+# --------------------------------------------------
 # Configure TLS certificate permissions
 # When TLS is enabled with client certificates, ensure the
 # certificate files are readable by the miarec_bin_group
@@ -53,6 +61,7 @@
     _tls_key_files:
       - "{{ miarec_db_tls_key_file if (miarec_db_use_ssl | bool and miarec_db_tls_key_file | length > 0) else '' }}"
       - "{{ miarec_redis_tls_key_file if (miarec_redis_use_ssl | bool and miarec_redis_tls_key_file | length > 0) else '' }}"
+      - "{{ miarec_siprec_tls_key_file if miarec_siprec_tls_port | int != 0 else '' }}"
   when:
     - miarec_bin_group != 'root'
     - _tls_key_files | select | list | length > 0
@@ -68,9 +77,21 @@
     _tls_key_files:
       - "{{ miarec_db_tls_key_file if (miarec_db_use_ssl | bool and miarec_db_tls_key_file | length > 0) else '' }}"
       - "{{ miarec_redis_tls_key_file if (miarec_redis_use_ssl | bool and miarec_redis_tls_key_file | length > 0) else '' }}"
+      - "{{ miarec_siprec_tls_key_file if miarec_siprec_tls_port | int != 0 else '' }}"
   when:
     - miarec_bin_group != 'root'
     - _tls_key_files | select | list | length > 0
+  become: true
+
+# The recorder reads its SIPREC TLS certificate as miarec_bin_user.
+- name: Set group ownership on the SIPREC TLS certificate file
+  file:
+    path: "{{ miarec_siprec_tls_cert_file }}"
+    group: "{{ miarec_bin_group }}"
+    mode: "u=rw,g=r,o=r"
+  when:
+    - miarec_bin_group != 'root'
+    - miarec_siprec_tls_port | int != 0
   become: true
 
 # --------------------------------------------------

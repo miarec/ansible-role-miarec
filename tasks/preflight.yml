@@ -106,3 +106,33 @@
     - miarec_redis_tls_key_file | length > 0
     - _redis_tls_key_stat.stat is defined
     - not _redis_tls_key_stat.stat.exists
+
+# SIPREC TLS validation.
+# The certificate and the key don't need to exist: tasks/siprec_tls.yml creates
+# them. Without their paths, the recorder would create a certificate of its own.
+- name: Fail if the SIPREC TLS certificate or key file isn't set
+  fail:
+    msg: >-
+      miarec_siprec_tls_port is {{ miarec_siprec_tls_port }}, so set both
+      miarec_siprec_tls_cert_file and miarec_siprec_tls_key_file.
+      Otherwise, the recorder creates a self-signed certificate of its own at startup.
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_cert_file | length == 0 or miarec_siprec_tls_key_file | length == 0
+
+- name: Validate SIPREC TLS CA file exists
+  stat:
+    path: "{{ miarec_siprec_tls_ca_file }}"
+  register: _siprec_tls_ca_stat
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_ca_file | length > 0
+
+- name: Fail if SIPREC TLS CA file not found
+  fail:
+    msg: "SIPREC TLS CA file not found: {{ miarec_siprec_tls_ca_file }}"
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_ca_file | length > 0
+    - _siprec_tls_ca_stat.stat is defined
+    - not _siprec_tls_ca_stat.stat.exists
