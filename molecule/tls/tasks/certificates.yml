@@ -7,12 +7,14 @@
     state: present
 
 - name: Create miarec TLS directory
+  # The role sets the group and mode of the TLS directory itself. Ansible
+  # creates the parent with the same mode, and the service user must be able
+  # to traverse it, so leave both world-traversable here.
   file:
     path: /etc/miarec/tls
     state: directory
     owner: root
-    group: miarec
-    mode: "0750"
+    mode: "0755"
 
 # Generate CA
 - name: Generate CA private key
@@ -90,12 +92,10 @@
   file:
     path: /etc/miarec/tls/client.key
     owner: root
-    group: miarec
     mode: "0640"
 
 - name: Set client certificate permissions
   file:
     path: /etc/miarec/tls/client.crt
     owner: root
-    group: miarec
     mode: "0644"

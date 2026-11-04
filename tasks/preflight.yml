@@ -1,6 +1,8 @@
 ---
 # ---------------------------------------------
 # Validate TLS certificate files
+# Only files that are already on the host are checked. A file with a *_src
+# variable is uploaded by tls.yml, and the copy task reports a missing source.
 # ---------------------------------------------
 
 # PostgreSQL TLS validation
@@ -11,6 +13,7 @@
   when:
     - miarec_db_use_ssl | bool
     - miarec_db_tls_ca_file | length > 0
+    - miarec_db_tls_ca_file_src | length == 0
 
 - name: Fail if PostgreSQL TLS CA file not found
   fail:
@@ -28,6 +31,7 @@
   when:
     - miarec_db_use_ssl | bool
     - miarec_db_tls_cert_file | length > 0
+    - miarec_db_tls_cert_file_src | length == 0
 
 - name: Fail if PostgreSQL TLS client certificate file not found
   fail:
@@ -45,6 +49,7 @@
   when:
     - miarec_db_use_ssl | bool
     - miarec_db_tls_key_file | length > 0
+    - miarec_db_tls_key_file_src | length == 0
 
 - name: Fail if PostgreSQL TLS client key file not found
   fail:
@@ -63,6 +68,7 @@
   when:
     - miarec_redis_use_ssl | bool
     - miarec_redis_tls_ca_file | length > 0
+    - miarec_redis_tls_ca_file_src | length == 0
 
 - name: Fail if Redis TLS CA file not found
   fail:
@@ -80,6 +86,7 @@
   when:
     - miarec_redis_use_ssl | bool
     - miarec_redis_tls_cert_file | length > 0
+    - miarec_redis_tls_cert_file_src | length == 0
 
 - name: Fail if Redis TLS client certificate file not found
   fail:
@@ -97,6 +104,7 @@
   when:
     - miarec_redis_use_ssl | bool
     - miarec_redis_tls_key_file | length > 0
+    - miarec_redis_tls_key_file_src | length == 0
 
 - name: Fail if Redis TLS client key file not found
   fail:
