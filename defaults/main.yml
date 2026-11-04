@@ -52,11 +52,12 @@ miarec_siprec_tls_cert_file: ""  # SSLCertificate: the recorder's certificate
 miarec_siprec_tls_key_file: ""   # SSLPrivateKey: the recorder's private key
 miarec_siprec_tls_ca_file: ""    # SSLCACertificates: the CA certificates of the clients.
                                  # Set it to require client certificates (mTLS).
-# When neither the certificate nor the key exists, the role creates a
-# self-signed certificate with this common name and subject alternative name
-# (DNS), valid for this number of days.
-miarec_siprec_tls_cert_common_name: "{{ inventory_hostname }}"
-miarec_siprec_tls_cert_days: 3650
+# Local copies of the files above. When a *_src variable is set, the role uploads
+# the file to the matching miarec_siprec_tls_*_file path and restarts the recorder
+# when the file changed. Leave it empty when the file is already on the host.
+miarec_siprec_tls_ca_file_src: ""
+miarec_siprec_tls_cert_file_src: ""
+miarec_siprec_tls_key_file_src: ""
 
 miarec_bin_user: root
 miarec_bin_group: root

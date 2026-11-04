@@ -39,21 +39,13 @@
   when: miarec_bin_user != 'root'
 
 # --------------------------------------------------
-# Create the certificate for SIP over TLS on the SIPREC interface
-# --------------------------------------------------
-- name: Create the SIPREC TLS certificate
-  import_tasks: siprec_tls.yml
-  when: miarec_siprec_tls_port | int != 0
-  become: true
-
-# --------------------------------------------------
 # Upload TLS files (optional)
 # A file is uploaded when its *_src variable is set. The private keys get
 # the group created above.
 # --------------------------------------------------
 - name: Upload TLS files
   import_tasks: tls.yml
-  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or miarec_siprec_tls_port | int != 0
   become: true
 
 # --------------------------------------------------

@@ -31,31 +31,23 @@ The recorder can accept SIPREC sessions over TLS, optionally with client certifi
 | `miarec_siprec_tls_cert_file` | `""` | `SSLCertificate` | The path of the recorder's certificate on the host. Required when TLS is on. |
 | `miarec_siprec_tls_key_file` | `""` | `SSLPrivateKey` | The path of the recorder's private key on the host. Required when TLS is on. |
 | `miarec_siprec_tls_ca_file` | `""` | `SSLCACertificates` | The path of a PEM file on the host with the CA certificates of the clients. Set it to require client certificates. |
-| `miarec_siprec_tls_cert_common_name` | `{{ inventory_hostname }}` | None | The common name and DNS subject alternative name of the self-signed certificate that the role creates. |
-| `miarec_siprec_tls_cert_days` | `3650` | None | The number of days that the self-signed certificate is valid. |
+| `miarec_siprec_tls_cert_file_src` | `""` | None | A local copy of the certificate. When it's set, the role uploads the file to `miarec_siprec_tls_cert_file` and restarts the recorder when the file changed. Leave it empty when the file is already on the host. |
+| `miarec_siprec_tls_key_file_src` | `""` | None | A local copy of the private key, see `miarec_siprec_tls_cert_file_src`. |
+| `miarec_siprec_tls_ca_file_src` | `""` | None | A local copy of the CA file, see `miarec_siprec_tls_cert_file_src`. |
 
 The role always sets `PortTLS`, so that setting `miarec_siprec_tls_port` to `0` turns TLS off on a host where it was on. It sets the other three settings only when TLS is on. When a setting changes, the role restarts the recorder.
 
-### The recorder's certificate
+### The recorder's certificate and key
 
-When TLS is on and neither the certificate nor the key exists, the role creates a self-signed certificate with the `openssl` command:
+The recorder's certificate comes from the CA of your deployment, as the PostgreSQL and Redis client certificates do: the role doesn't create or sign certificates. Put the certificate and the key on the Ansible control machine and set `miarec_siprec_tls_cert_file_src` and `miarec_siprec_tls_key_file_src`, and the role uploads them to the paths of `miarec_siprec_tls_cert_file` and `miarec_siprec_tls_key_file`, as it uploads the PostgreSQL and Redis files: owner `root`, group `miarec_bin_group`, mode `0644` for the certificate and `0640` for the key, in a directory of mode `0750`. When a file changed, the role restarts the recorder, so a renewed certificate takes effect with the next run. When a `*_src` variable is empty, the file must already be on the host, or the role fails before it changes anything.
 
-- An RSA key of 2048 bits, and a SHA-256 signature.
-- The subject `CN=<miarec_siprec_tls_cert_common_name>` and the subject alternative name `DNS:<miarec_siprec_tls_cert_common_name>`.
-- The extensions `basicConstraints=critical,CA:FALSE`, `keyUsage=critical,digitalSignature,keyEncipherment`, `extendedKeyUsage=serverAuth`, and `subjectKeyIdentifier=hash`.
-- Valid for `miarec_siprec_tls_cert_days` days.
-
-The role creates the missing directories of the two files with owner `root`, group `miarec_bin_group`, and mode `0750`. It creates the key with owner `root`, group `miarec_bin_group`, and mode `0640`, and the certificate with mode `0644`.
-
-The role never overwrites an existing certificate or key. To use your own certificate, put both files on the host before you run the role. If only one of the two files exists, the role fails instead of creating a key that doesn't match the certificate. To renew the self-signed certificate, delete both files and run the role again.
-
-On every run, when `miarec_bin_group` isn't `root`, the role sets the group of the key to `miarec_bin_group` and its mode to `0640`, and the group of the key's directory to `miarec_bin_group` and its mode to `0750`, as it does for the PostgreSQL and Redis client keys. It also sets the group of the certificate to `miarec_bin_group` and its mode to `0644`. This applies to a certificate and key that you provide too, so that the recorder can read them.
+On every run, when `miarec_bin_group` isn't `root`, the role sets the group of the key to `miarec_bin_group` and its mode to `0640`, and the group of the key's directory to `miarec_bin_group` and its mode to `0750`, as it does for the PostgreSQL and Redis client keys. It also sets the group of the certificate to `miarec_bin_group` and its mode to `0644`, so that the recorder can read the files however they got to the host.
 
 The role requires both paths when TLS is on because, when `SSLCertificate` and `SSLPrivateKey` name files that don't exist, the recorder creates a self-signed certificate of its own at startup. A client that verifies or pins the recorder's certificate can't know that certificate before the recorder starts, and the certificate changes whenever its files are lost.
 
 ### Client certificates (mutual TLS)
 
-When `miarec_siprec_tls_ca_file` is set, the recorder requires a client certificate signed by one of the CA certificates in that file, and refuses a client without one. When it's empty, the recorder doesn't ask for a client certificate. The file must exist on the host, or the role fails before it changes anything. If a client certificate has an extended key usage extension, it must include `clientAuth`.
+When `miarec_siprec_tls_ca_file` is set, the recorder requires a client certificate signed by one of the CA certificates in that file, and refuses a client without one. When it's empty, the recorder doesn't ask for a client certificate. Set `miarec_siprec_tls_ca_file_src` to upload the file, or put it on the host before you run the role. The file can be the CA file of the PostgreSQL or Redis client: the role uploads a file once. If a client certificate has an extended key usage extension, it must include `clientAuth`.
 
 ### Settings in the MiaRec database
 

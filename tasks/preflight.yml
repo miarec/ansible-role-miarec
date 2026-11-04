@@ -116,8 +116,8 @@
     - not _redis_tls_key_stat.stat.exists
 
 # SIPREC TLS validation.
-# The certificate and the key don't need to exist: tasks/siprec_tls.yml creates
-# them. Without their paths, the recorder would create a certificate of its own.
+# Without the paths of the certificate and the key, the recorder would create
+# a certificate of its own.
 - name: Fail if the SIPREC TLS certificate or key file isn't set
   fail:
     msg: >-
@@ -128,6 +128,42 @@
     - miarec_siprec_tls_port | int != 0
     - miarec_siprec_tls_cert_file | length == 0 or miarec_siprec_tls_key_file | length == 0
 
+- name: Validate SIPREC TLS certificate file exists
+  stat:
+    path: "{{ miarec_siprec_tls_cert_file }}"
+  register: _siprec_tls_cert_stat
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_cert_file | length > 0
+    - miarec_siprec_tls_cert_file_src | length == 0
+
+- name: Fail if SIPREC TLS certificate file not found
+  fail:
+    msg: "SIPREC TLS certificate file not found: {{ miarec_siprec_tls_cert_file }}"
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_cert_file | length > 0
+    - _siprec_tls_cert_stat.stat is defined
+    - not _siprec_tls_cert_stat.stat.exists
+
+- name: Validate SIPREC TLS key file exists
+  stat:
+    path: "{{ miarec_siprec_tls_key_file }}"
+  register: _siprec_tls_key_stat
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_key_file | length > 0
+    - miarec_siprec_tls_key_file_src | length == 0
+
+- name: Fail if SIPREC TLS key file not found
+  fail:
+    msg: "SIPREC TLS key file not found: {{ miarec_siprec_tls_key_file }}"
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_key_file | length > 0
+    - _siprec_tls_key_stat.stat is defined
+    - not _siprec_tls_key_stat.stat.exists
+
 - name: Validate SIPREC TLS CA file exists
   stat:
     path: "{{ miarec_siprec_tls_ca_file }}"
@@ -135,6 +171,7 @@
   when:
     - miarec_siprec_tls_port | int != 0
     - miarec_siprec_tls_ca_file | length > 0
+    - miarec_siprec_tls_ca_file_src | length == 0
 
 - name: Fail if SIPREC TLS CA file not found
   fail:
