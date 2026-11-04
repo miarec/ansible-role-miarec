@@ -20,6 +20,6 @@
         miarec_bin_user: "{{ lookup('env', 'MIAREC_BIN_USER') }}"
 
   roles:
-    - role: ansible-role-miarec
+    - role: "{{ playbook_dir }}/../.." # noqa: role-name[path]
       tags:
         - miarec
