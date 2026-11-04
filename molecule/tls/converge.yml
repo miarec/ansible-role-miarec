@@ -3,6 +3,9 @@
   hosts: all
   become: true
 
+  vars:
+    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
+
   pre_tasks:
     - set_fact:
         miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
@@ -19,7 +22,7 @@
       when: ansible_facts['os_family'] == "Debian"
 
   roles:
-    - role: ansible-role-miarec
+    - role: "{{ playbook_dir }}/../.." # noqa: role-name[path]
       vars:
         # PostgreSQL TLS configuration
         miarec_db_use_ssl: true
@@ -42,83 +45,13 @@
         miarec_redis_tls_cert_file_src: "{{ tls_src_dir }}/client.crt"
         miarec_redis_tls_key_file_src: "{{ tls_src_dir }}/client.key"
         # SIP over TLS on the SIPREC interface, with client certificates.
-        # The directory doesn't exist: the role creates it, and a self-signed
-        # certificate in it.
+        # The directory doesn't exist: the role creates it, and uploads the
+        # recorder's certificate and key, and the CA of the clients, from the
+        # control machine (see prepare.yml).
         miarec_siprec_tls_port: 5081
         miarec_siprec_tls_cert_file: /etc/miarec/siprec-tls/recorder.crt
         miarec_siprec_tls_key_file: /etc/miarec/siprec-tls/recorder.key
-        miarec_siprec_tls_ca_file: /etc/miarec/tls/siprec-client-ca.crt
-
-# prepare.yml (tasks/siprec_certificates.yml) creates the files of these checks.
-- name: Check that the role keeps an existing SIPREC TLS certificate and key
-  hosts: all
-  become: true
-
-  vars:
-    _existing_files:
-      - /etc/miarec/siprec-existing/siprec.crt
-      - /etc/miarec/siprec-existing/siprec.key
-
-  tasks:
-    - name: Read the checksums of the existing certificate and key
-      stat:
-        path: "{{ item }}"
-      loop: "{{ _existing_files }}"
-      register: _existing_before
-
-    - name: Run the SIPREC TLS tasks of the role with the existing certificate and key
-      include_role:
-        name: ansible-role-miarec
-        tasks_from: siprec_tls.yml
-      vars:
-        miarec_siprec_tls_cert_file: "{{ _existing_files[0] }}"
-        miarec_siprec_tls_key_file: "{{ _existing_files[1] }}"
-
-    - name: Read the checksums of the certificate and key again
-      stat:
-        path: "{{ item }}"
-      loop: "{{ _existing_files }}"
-      register: _existing_after
-
-    - name: Check that the role didn't change the existing certificate and key
-      assert:
-        that:
-          - _existing_before.results | map(attribute='stat.checksum') | list == _existing_after.results | map(attribute='stat.checksum') | list
-        fail_msg: "The role changed the existing SIPREC TLS certificate or key."
-
-- name: Check that the role fails when the SIPREC TLS certificate exists without its key
-  hosts: all
-  become: true
-
-  tasks:
-    - name: Run the SIPREC TLS tasks with a certificate without a key
-      block:
-        - name: Run the SIPREC TLS tasks of the role with a certificate without a key
-          include_role:
-            name: ansible-role-miarec
-            tasks_from: siprec_tls.yml
-          vars:
-            miarec_siprec_tls_cert_file: /etc/miarec/siprec-cert-only/siprec.crt
-            miarec_siprec_tls_key_file: /etc/miarec/siprec-cert-only/siprec.key
-
-        - name: Fail because the role accepted a certificate without a key
-          fail:
-            msg: "The role accepted a SIPREC TLS certificate without a key."
-
-      rescue:
-        - name: Check that the role failed on the certificate without a key
-          assert:
-            that:
-              - ansible_failed_task.name == 'Fail if only one of the SIPREC TLS certificate and key exists'
-            fail_msg: "Expected the role to fail on the certificate without a key, but it failed with: {{ ansible_failed_result }}"
-
-    - name: Read the key of the certificate without a key
-      stat:
-        path: /etc/miarec/siprec-cert-only/siprec.key
-      register: _cert_only_key
-
-    - name: Check that the role created no key
-      assert:
-        that:
-          - not _cert_only_key.stat.exists
-        fail_msg: "The role created a key for a certificate that it didn't create."
+        miarec_siprec_tls_ca_file: /etc/miarec/siprec-tls/ca.crt
+        miarec_siprec_tls_cert_file_src: "{{ tls_src_dir }}/siprec/recorder.crt"
+        miarec_siprec_tls_key_file_src: "{{ tls_src_dir }}/siprec/recorder.key"
+        miarec_siprec_tls_ca_file_src: "{{ tls_src_dir }}/siprec/ca.crt"

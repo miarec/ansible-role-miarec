@@ -41,3 +41,22 @@
         path: "/etc/miarec/tls/{{ item }}"
         state: absent
       loop: [ca.crt, client.crt, client.key]
+
+    # The SIPREC files too: the recorder's certificate and key, and the CA
+    # certificate of the clients (tasks/siprec_certificates.yml).
+    - name: Fetch the SIPREC TLS files that the role uploads
+      fetch:
+        src: "{{ item.src }}"
+        dest: "{{ tls_src_dir }}/siprec/{{ item.dest }}"
+        flat: true
+      loop:
+        - { src: /etc/miarec/tls/siprec-recorder/recorder.crt, dest: recorder.crt }
+        - { src: /etc/miarec/tls/siprec-recorder/recorder.key, dest: recorder.key }
+        - { src: /etc/miarec/tls/siprec-ca.crt, dest: ca.crt }
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: Remove the fetched recorder certificate and key from the host
+      file:
+        path: /etc/miarec/tls/siprec-recorder
+        state: absent

@@ -1,27 +1,37 @@
 ---
 # Certificates for SIP over TLS on the SIPREC interface.
-# The role creates the recorder's certificate. This file creates:
-#   - The CA of the SIPREC clients, which converge.yml gives to the role as
-#     miarec_siprec_tls_ca_file, and a client certificate that it signs.
-#   - The files of converge.yml's checks of an existing certificate and key,
-#     which the role must not overwrite, and of a certificate without a key.
+#
+# SIPREC-CA stands for the CA of a deployment: it signs the recorder's
+# certificate, which the clients verify, and the clients' certificates, which
+# the recorder verifies. This file creates:
+#   - SIPREC-CA, in /etc/miarec/tls, where it stays: side_effect.yml signs the
+#     renewed certificate of the recorder with it.
+#   - The recorder's certificate and key (tasks/siprec_recorder_certificate.yml),
+#     which prepare.yml fetches to the control machine with the CA certificate,
+#     so that the role uploads them.
+#   - A client certificate that SIPREC-CA signs, for the tests.
 # The tests use the client certificate of certificates.yml, which Test-CA
 # signs, as the certificate of a client that the recorder must refuse.
 
-- name: SIPREC | Generate the CA key of the SIPREC clients
-  command: openssl genrsa -out /etc/miarec/tls/siprec-client-ca.key 2048
+- name: SIPREC | Generate the key of SIPREC-CA
+  command: openssl genrsa -out /etc/miarec/tls/siprec-ca.key 2048
   args:
-    creates: /etc/miarec/tls/siprec-client-ca.key
+    creates: /etc/miarec/tls/siprec-ca.key
 
-- name: SIPREC | Generate the CA certificate of the SIPREC clients
+- name: SIPREC | Generate the certificate of SIPREC-CA
   command: >
     openssl req -x509 -new -nodes
-    -key /etc/miarec/tls/siprec-client-ca.key
+    -key /etc/miarec/tls/siprec-ca.key
     -sha256 -days 365
-    -out /etc/miarec/tls/siprec-client-ca.crt
-    -subj "/CN=SIPREC-Client-CA"
+    -out /etc/miarec/tls/siprec-ca.crt
+    -subj "/CN=SIPREC-CA"
   args:
-    creates: /etc/miarec/tls/siprec-client-ca.crt
+    creates: /etc/miarec/tls/siprec-ca.crt
+
+- name: SIPREC | Create the recorder's certificate and key
+  include_tasks: siprec_recorder_certificate.yml
+  vars:
+    siprec_recorder_dir: /etc/miarec/tls/siprec-recorder
 
 - name: SIPREC | Generate the key of the SIPREC client
   command: openssl genrsa -out /etc/miarec/tls/siprec-client.key 2048
@@ -54,12 +64,12 @@
   args:
     creates: /etc/miarec/tls/siprec-client.csr
 
-- name: SIPREC | Sign the certificate of the SIPREC client with its CA
+- name: SIPREC | Sign the certificate of the SIPREC client with SIPREC-CA
   command: >
     openssl x509 -req
     -in /etc/miarec/tls/siprec-client.csr
-    -CA /etc/miarec/tls/siprec-client-ca.crt
-    -CAkey /etc/miarec/tls/siprec-client-ca.key
+    -CA /etc/miarec/tls/siprec-ca.crt
+    -CAkey /etc/miarec/tls/siprec-ca.key
     -CAcreateserial
     -out /etc/miarec/tls/siprec-client.crt
     -days 365 -sha256
@@ -67,36 +77,3 @@
     -extfile /etc/miarec/tls/siprec-client.cnf
   args:
     creates: /etc/miarec/tls/siprec-client.crt
-
-- name: SIPREC | Set the permissions of the CA certificate of the SIPREC clients
-  file:
-    path: /etc/miarec/tls/siprec-client-ca.crt
-    mode: "0644"
-
-# The checks in converge.yml
-- name: SIPREC | Create the directories of the existing certificates
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  loop:
-    - /etc/miarec/siprec-existing
-    - /etc/miarec/siprec-cert-only
-
-- name: SIPREC | Create an existing certificate and key
-  command: >
-    openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 30
-    -subj "/CN=existing-siprec"
-    -keyout /etc/miarec/siprec-existing/siprec.key
-    -out /etc/miarec/siprec-existing/siprec.crt
-  args:
-    creates: /etc/miarec/siprec-existing/siprec.crt
-
-- name: SIPREC | Create a certificate without a key
-  copy:
-    src: /etc/miarec/siprec-existing/siprec.crt
-    dest: /etc/miarec/siprec-cert-only/siprec.crt
-    remote_src: true
-    mode: "0644"
