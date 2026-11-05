@@ -43,10 +43,12 @@ uv run molecule destroy   # Cleanup
 ## Architecture
 
 ### Role Structure
-- `tasks/main.yml` - Entry point; orchestrates install flow: load OS vars → install deps → create user/group → deploy_helper init → install → cleanup → SFTP user
+- `tasks/main.yml` - Entry point; orchestrates install flow: load OS vars → install deps → create user/group → upload TLS files → verify TLS files → deploy_helper init → install → cleanup → SFTP user
 - `tasks/install.yml` - Core installation: downloads tarball, extracts, configures miarec.ini, sets up systemd/upstart service
 - `tasks/dependencies.yml` - OS-specific package dependencies
 - `tasks/sftpuser.yml` - Optional restricted SFTP user creation
+- `tasks/tls_upload.yml` - Upload TLS files from the control machine (when a `*_src` variable is set)
+- `tasks/tls_verify.yml` - Fail if the recorder's user cannot read a TLS file (when TLS is enabled)
 - `defaults/main.yml` - All configurable variables with defaults
 - `vars/Debian.yml`, `vars/RedHat.yml` - OS-family specific variables (tarball filenames)
 

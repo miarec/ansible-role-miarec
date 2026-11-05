@@ -44,6 +44,7 @@ jobs:
                 scenario:
                     - default
                     - sftp
+                    - tls
 
         steps:
             - name: Check out the Repository

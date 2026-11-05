@@ -1,5 +1,6 @@
 ---
 # Install and Configure Redis with TLS
+# The server certificate is generated on the control machine and uploaded here
 
 - name: Redis | Install EPEL | CentOS
   package:
@@ -17,7 +18,9 @@
   set_fact:
     redis_service_name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
 
-# Generate Server Certificates
+# ============ Upload Server Certificates ============
+# The certificates are generated on the control machine (see prepare.yml).
+# The package install above creates the redis user, which owns the files.
 - name: Redis | Create TLS directory
   file:
     path: /etc/redis/tls
@@ -26,76 +29,17 @@
     group: redis
     mode: "0750"
 
-- name: Redis | Generate server private key
-  command: openssl genrsa -out /etc/redis/tls/server.key 2048
-  args:
-    creates: /etc/redis/tls/server.key
-
-- name: Redis | Create server certificate config
+- name: Redis | Upload server certificate and CA certificate
   copy:
-    content: |
-      [req]
-      distinguished_name = req_distinguished_name
-      req_extensions = v3_req
-      prompt = no
-
-      [req_distinguished_name]
-      CN = localhost
-
-      [v3_req]
-      keyUsage = keyEncipherment, dataEncipherment
-      extendedKeyUsage = serverAuth
-      subjectAltName = @alt_names
-
-      [alt_names]
-      DNS.1 = localhost
-      IP.1 = 127.0.0.1
-    dest: /etc/redis/tls/server.cnf
-    mode: "0644"
-
-- name: Redis | Generate server CSR
-  command: >
-    openssl req -new
-    -key /etc/redis/tls/server.key
-    -out /etc/redis/tls/server.csr
-    -config /etc/redis/tls/server.cnf
-  args:
-    creates: /etc/redis/tls/server.csr
-
-- name: Redis | Sign server certificate with CA
-  command: >
-    openssl x509 -req
-    -in /etc/redis/tls/server.csr
-    -CA /etc/miarec/tls/ca.crt
-    -CAkey /etc/miarec/tls/ca.key
-    -CAcreateserial
-    -out /etc/redis/tls/server.crt
-    -days 365 -sha256
-    -extensions v3_req
-    -extfile /etc/redis/tls/server.cnf
-  args:
-    creates: /etc/redis/tls/server.crt
-
-- name: Redis | Copy CA certificate
-  copy:
-    src: /etc/miarec/tls/ca.crt
-    dest: /etc/redis/tls/ca.crt
-    mode: "0644"
-    remote_src: true
-
-- name: Redis | Set server key permissions
-  file:
-    path: /etc/redis/tls/server.key
-    mode: "0600"
+    src: "{{ tls_src_dir }}/{{ item.src }}"
+    dest: "/etc/redis/tls/{{ item.src | basename }}"
     owner: redis
     group: redis
-
-- name: Redis | Set server certificate permissions
-  file:
-    path: /etc/redis/tls/server.crt
-    mode: "0644"
-    owner: redis
-    group: redis
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: redis/server.key, mode: "0600" }
+    - { src: redis/server.crt, mode: "0644" }
+    - { src: redis/ca.crt, mode: "0644" }
 
 # Start Redis to detect config file location
 - name: Redis | Start Redis service temporarily
@@ -163,24 +107,5 @@
     state: restarted
     enabled: true
 
-# Verify TLS configuration
-- name: Redis | Verify TLS connection with client certificate succeeds
-  command: >
-    redis-cli
-    --tls
-    --cacert /etc/miarec/tls/ca.crt
-    --cert /etc/miarec/tls/client.crt
-    --key /etc/miarec/tls/client.key
-    -h 127.0.0.1
-    -p 6379
-    PING
-  register: _redis_tls_test
-  changed_when: false
-
-- name: Redis | Verify TLS connection succeeded
-  assert:
-    that:
-      - _redis_tls_test.rc == 0
-      - "'PONG' in _redis_tls_test.stdout"
-    fail_msg: "Redis TLS connection with client certificate failed"
-    success_msg: "Redis TLS connection with client certificate succeeded"
+# The TLS connection is checked in verify, through the client files that the
+# role uploads during converge.
