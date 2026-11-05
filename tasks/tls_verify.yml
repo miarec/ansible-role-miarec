@@ -25,8 +25,27 @@
     _miarec_tls_paths: "{{ _miarec_tls_paths + [miarec_redis_tls_ca_file, miarec_redis_tls_cert_file, miarec_redis_tls_key_file] }}"
   when: miarec_redis_use_ssl | bool
 
-# `select` drops an empty path, for a deployment without a client certificate.
-# `unique` handles a CA file shared by both services.
+# Without the paths of the SIPREC certificate and key, the recorder creates a
+# self-signed certificate of its own at startup, which a client that verifies
+# the recorder's certificate can't know.
+- name: Fail if the SIPREC TLS certificate or key file isn't set
+  fail:
+    msg: >-
+      miarec_siprec_tls_port is {{ miarec_siprec_tls_port }}, so set both
+      miarec_siprec_tls_cert_file and miarec_siprec_tls_key_file.
+      Otherwise, the recorder creates a self-signed certificate of its own at startup.
+  when:
+    - miarec_siprec_tls_port | int != 0
+    - miarec_siprec_tls_cert_file | length == 0 or miarec_siprec_tls_key_file | length == 0
+
+- name: Add the SIPREC TLS files
+  set_fact:
+    _miarec_tls_paths: "{{ _miarec_tls_paths + [miarec_siprec_tls_ca_file, miarec_siprec_tls_cert_file, miarec_siprec_tls_key_file] }}"
+  when: miarec_siprec_tls_port | int != 0
+
+# `select` drops an empty path, for a deployment without a client certificate
+# or a SIPREC listener that requires none. `unique` handles a CA file shared
+# by several of the services.
 - name: Verify the recorder's user can read the TLS files
   command: runuser -u {{ miarec_bin_user | quote }} -- test -r {{ item | quote }}
   loop: "{{ _miarec_tls_paths | select | unique }}"

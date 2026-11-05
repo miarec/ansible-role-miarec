@@ -41,7 +41,7 @@
 # --------------------------------------------------
 - name: Upload TLS files
   import_tasks: tls_upload.yml
-  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or miarec_siprec_tls_port | int != 0
   become: true
 
 # --------------------------------------------------
@@ -51,7 +51,7 @@
 # --------------------------------------------------
 - name: Verify the TLS files are readable
   import_tasks: tls_verify.yml
-  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or miarec_siprec_tls_port | int != 0
   become: true
 
 # --------------------------------------------------
