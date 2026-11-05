@@ -2,17 +2,18 @@
 # The TLS fixtures are split between the control machine and the target.
 #
 # Control machine (first play):
-#   Generates the test CA, the client certificate, and the PostgreSQL and
-#   Redis server certificates in `tls_src_dir`. The CA private key stays here.
+#   Generates a test CA, a client certificate, and a server certificate for
+#   each of PostgreSQL and Redis in `tls_src_dir`, defined once in
+#   molecule.yml. The CA private keys stay here.
 #
 # Target (second play):
 #   Installs PostgreSQL and Redis. Each service's task file uploads its own
 #   server certificate and the CA certificate into the service's directory,
 #   /etc/postgresql/tls or /etc/redis/tls.
 #
-# Nothing in prepare writes to /etc/miarec/tls. The role creates that
-# directory and uploads the client certificate and the CA certificate from
-# `tls_src_dir` during converge, the same way the production playbooks do.
+# Nothing in prepare writes to /etc/miarec/tls. The role creates a directory
+# per service there and uploads the client certificate and the CA certificate
+# from `tls_src_dir` during converge, the same way the production playbooks do.
 # A passing test therefore proves the role's upload, not the fixture's.
 
 - name: Generate TLS certificates on the control machine
@@ -21,9 +22,6 @@
   gather_facts: false
   become: false
 
-  vars:
-    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
-
   tasks:
     - name: Include TLS certificate generation tasks
       include_tasks: tasks/certificates.yml
@@ -31,9 +29,6 @@
 - name: Prepare TLS Environment
   hosts: all
   become: true
-
-  vars:
-    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
 
   tasks:
     # RedHat 9 images have curl-minimal which conflicts with curl

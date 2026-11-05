@@ -78,7 +78,7 @@
   loop:
     - { src: postgresql/server.key, mode: "0600" }
     - { src: postgresql/server.crt, mode: "0644" }
-    - { src: ca.crt, mode: "0644" }
+    - { src: postgresql/ca.crt, mode: "0644" }
 
 # Configure PostgreSQL for TLS
 - name: PostgreSQL | Enable SSL in postgresql.conf
