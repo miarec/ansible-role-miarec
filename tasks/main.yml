@@ -7,12 +7,6 @@
     - "../vars/{{ ansible_facts['os_family'] }}.yml"
 
 # ---------------------------------------------
-# Preflight checks
-# ---------------------------------------------
-- name: Run preflight checks
-  import_tasks: preflight.yml
-
-# ---------------------------------------------
 # Install dependencies
 # ---------------------------------------------
 - name: Install dependencies
@@ -27,7 +21,7 @@
     name: "{{ miarec_bin_group }}"
     state: present
   when: miarec_bin_group != 'root'
-
+  become: true
 
 - name: "Add miarec user '{{ miarec_bin_user }}'"
   user:
@@ -37,50 +31,27 @@
     shell: /bin/false
     system: true
   when: miarec_bin_user != 'root'
+  become: true
 
 # --------------------------------------------------
 # Upload TLS files (optional)
 # A file is uploaded when its *_src variable is set. The private keys get
-# the group created above.
+# the group created above. The role sets permissions only on the files it
+# uploads; a file that is already on the host is left as is.
 # --------------------------------------------------
 - name: Upload TLS files
-  import_tasks: tls.yml
+  import_tasks: tls_upload.yml
   when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
   become: true
 
 # --------------------------------------------------
-# Configure TLS certificate permissions
-# When TLS is enabled with client certificates, ensure the
-# certificate files are readable by the miarec_bin_group
+# Verify the recorder's user can read the TLS files
+# Runs after the user and group exist and before the release is
+# unpacked, so a failure leaves the host untouched.
 # --------------------------------------------------
-- name: Set group ownership on TLS key files
-  file:
-    path: "{{ item }}"
-    group: "{{ miarec_bin_group }}"
-    mode: "u=rw,g=r,o="
-  loop: "{{ _tls_key_files | select | list }}"
-  vars:
-    _tls_key_files:
-      - "{{ miarec_db_tls_key_file if (miarec_db_use_ssl | bool and miarec_db_tls_key_file | length > 0) else '' }}"
-      - "{{ miarec_redis_tls_key_file if (miarec_redis_use_ssl | bool and miarec_redis_tls_key_file | length > 0) else '' }}"
-  when:
-    - miarec_bin_group != 'root'
-    - _tls_key_files | select | list | length > 0
-  become: true
-
-- name: Set group ownership on TLS key file directories
-  file:
-    path: "{{ item | dirname }}"
-    group: "{{ miarec_bin_group }}"
-    mode: "u=rwx,g=rx,o="
-  loop: "{{ _tls_key_files | select | list }}"
-  vars:
-    _tls_key_files:
-      - "{{ miarec_db_tls_key_file if (miarec_db_use_ssl | bool and miarec_db_tls_key_file | length > 0) else '' }}"
-      - "{{ miarec_redis_tls_key_file if (miarec_redis_use_ssl | bool and miarec_redis_tls_key_file | length > 0) else '' }}"
-  when:
-    - miarec_bin_group != 'root'
-    - _tls_key_files | select | list | length > 0
+- name: Verify the TLS files are readable
+  import_tasks: tls_verify.yml
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
   become: true
 
 # --------------------------------------------------
