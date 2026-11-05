@@ -33,7 +33,7 @@ How did you verify it works?
 * Notes:
   - `uv run molecule test -s tls` passes on Ubuntu 24.04. In converge, the role reports `changed` for "Create TLS directories" with `/etc/miarec/tls` and for the upload of the three client files. The 8 testinfra tests pass, including the new check that `/etc/miarec/tls/ca.key` doesn't exist on the target and the check that the server files that prepare uploads exist.
   - `uv run ansible-lint` and `uv run yamllint .` pass without warnings.
-  - I didn't run the scenario on the RedHat images locally. CI runs it on every distro.
+  - I didn't run the scenario on the RedHat images locally. The `tls` scenario wasn't in the CI matrix before; it is now, so CI runs it on every distro.
 
 ---
 
@@ -52,6 +52,7 @@ Brief list of main changes:
 * `molecule/tls/tasks/postgresql_tls.yml` and `redis_tls.yml` upload their server certificate and the CA certificate with `copy`, instead of generating them with OpenSSL. The client-certificate connection checks are gone, because verify runs the same checks through the files the role uploads.
 * `molecule/tls/tests/test_tls.py` asserts that the CA private key isn't on the target, and that the server files exist.
 * Added `.yamllint` and `.gitattributes`. Converted `templates/etc_systemd_system_miarec.service.j2` to LF.
+* CI runs the `tls` scenario next to `default` and `sftp`.
 
 ---
 

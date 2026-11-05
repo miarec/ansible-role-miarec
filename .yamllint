@@ -1,8 +1,9 @@
 ---
 # ansible-lint reads this file too, so the yaml[...] entries in .ansible-lint
-# and the rules here should agree. ansible-lint also requires the comments,
-# comments-indentation, and octal-values settings below, or it warns that the
-# config is incompatible and turns off its fix mode.
+# and the rules here should agree. ansible-lint also requires the braces,
+# comments, comments-indentation, and octal-values settings below, or it warns
+# that the config is incompatible and turns off its fix mode. The truthy
+# values are the ones ansible-lint uses by default.
 extends: default
 
 ignore:
@@ -10,7 +11,8 @@ ignore:
   - .ansible/
 
 rules:
-  # Allow `{ key: value }` with spaces inside the braces.
+  # Allow `{ key: value }` with spaces inside the braces. These are also the
+  # values ansible-lint requires.
   braces:
     min-spaces-inside: 0
     max-spaces-inside: 1
@@ -25,4 +27,6 @@ rules:
     forbid-implicit-octal: true
     forbid-explicit-octal: true
   trailing-spaces: disable
-  truthy: disable
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
