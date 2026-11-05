@@ -1,0 +1,35 @@
+---
+# Verify that the recorder's user can read the TLS files. A file that the
+# recorder cannot open fails the play here, before the release is unpacked,
+# instead of failing the service at its next restart, which may go unnoticed
+# for a long time.
+#
+# The check runs as miarec_bin_user, the identity the systemd unit and the
+# upstart job run the recorder as. runuser applies the user's supplementary
+# groups, as systemd does, so the check also proves the membership in
+# miarec_bin_group. `test -r` covers traversal of every directory and read
+# permission on the file itself, for files the role uploaded and files that
+# arrived by other means.
+
+- name: Start with an empty list of TLS files
+  set_fact:
+    _miarec_tls_paths: []
+
+- name: Add the PostgreSQL TLS files
+  set_fact:
+    _miarec_tls_paths: "{{ _miarec_tls_paths + [miarec_db_tls_ca_file, miarec_db_tls_cert_file, miarec_db_tls_key_file] }}"
+  when: miarec_db_use_ssl | bool
+
+- name: Add the Redis TLS files
+  set_fact:
+    _miarec_tls_paths: "{{ _miarec_tls_paths + [miarec_redis_tls_ca_file, miarec_redis_tls_cert_file, miarec_redis_tls_key_file] }}"
+  when: miarec_redis_use_ssl | bool
+
+# `select` drops an empty path, for a deployment without a client certificate.
+# `unique` handles a CA file shared by both services.
+- name: Verify the recorder's user can read the TLS files
+  command: runuser -u {{ miarec_bin_user | quote }} -- test -r {{ item | quote }}
+  loop: "{{ _miarec_tls_paths | select | unique }}"
+  loop_control:
+    label: "{{ miarec_bin_user }} can read {{ item }}"
+  changed_when: false

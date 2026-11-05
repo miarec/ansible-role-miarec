@@ -3,9 +3,6 @@
   hosts: all
   become: true
 
-  vars:
-    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
-
   pre_tasks:
     - set_fact:
         miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
@@ -24,34 +21,23 @@
   roles:
     - role: "{{ playbook_dir }}/../.." # noqa: role-name[path]
       vars:
+        # PostgreSQL and Redis each have their own PKI and their own directory.
+        # The role uploads the files from the control machine (see prepare.yml).
         # PostgreSQL TLS configuration
         miarec_db_use_ssl: true
-        miarec_db_tls_ca_file: /etc/miarec/tls/ca.crt
-        miarec_db_tls_cert_file: /etc/miarec/tls/client.crt
-        miarec_db_tls_key_file: /etc/miarec/tls/client.key
+        miarec_db_tls_ca_file: /etc/miarec/tls/postgresql/ca.crt
+        miarec_db_tls_cert_file: /etc/miarec/tls/postgresql/client.crt
+        miarec_db_tls_key_file: /etc/miarec/tls/postgresql/client.key
         miarec_db_tls_check_hostname: false
+        miarec_db_tls_ca_file_src: "{{ tls_src_dir }}/postgresql/ca.crt"
+        miarec_db_tls_cert_file_src: "{{ tls_src_dir }}/postgresql/client.crt"
+        miarec_db_tls_key_file_src: "{{ tls_src_dir }}/postgresql/client.key"
         # Redis TLS configuration
         miarec_redis_use_ssl: true
-        miarec_redis_tls_ca_file: /etc/miarec/tls/ca.crt
-        miarec_redis_tls_cert_file: /etc/miarec/tls/client.crt
-        miarec_redis_tls_key_file: /etc/miarec/tls/client.key
+        miarec_redis_tls_ca_file: /etc/miarec/tls/redis/ca.crt
+        miarec_redis_tls_cert_file: /etc/miarec/tls/redis/client.crt
+        miarec_redis_tls_key_file: /etc/miarec/tls/redis/client.key
         miarec_redis_tls_check_hostname: false
-        # The role uploads the files from the control machine (see prepare.yml).
-        # PostgreSQL and Redis share the files, which the role uploads once.
-        miarec_db_tls_ca_file_src: "{{ tls_src_dir }}/ca.crt"
-        miarec_db_tls_cert_file_src: "{{ tls_src_dir }}/client.crt"
-        miarec_db_tls_key_file_src: "{{ tls_src_dir }}/client.key"
-        miarec_redis_tls_ca_file_src: "{{ tls_src_dir }}/ca.crt"
-        miarec_redis_tls_cert_file_src: "{{ tls_src_dir }}/client.crt"
-        miarec_redis_tls_key_file_src: "{{ tls_src_dir }}/client.key"
-        # SIP over TLS on the SIPREC interface, with client certificates.
-        # The directory doesn't exist: the role creates it, and uploads the
-        # recorder's certificate and key, and the CA of the clients, from the
-        # control machine (see prepare.yml).
-        miarec_siprec_tls_port: 5081
-        miarec_siprec_tls_cert_file: /etc/miarec/siprec-tls/recorder.crt
-        miarec_siprec_tls_key_file: /etc/miarec/siprec-tls/recorder.key
-        miarec_siprec_tls_ca_file: /etc/miarec/siprec-tls/ca.crt
-        miarec_siprec_tls_cert_file_src: "{{ tls_src_dir }}/siprec/recorder.crt"
-        miarec_siprec_tls_key_file_src: "{{ tls_src_dir }}/siprec/recorder.key"
-        miarec_siprec_tls_ca_file_src: "{{ tls_src_dir }}/siprec/ca.crt"
+        miarec_redis_tls_ca_file_src: "{{ tls_src_dir }}/redis/ca.crt"
+        miarec_redis_tls_cert_file_src: "{{ tls_src_dir }}/redis/client.crt"
+        miarec_redis_tls_key_file_src: "{{ tls_src_dir }}/redis/client.key"
