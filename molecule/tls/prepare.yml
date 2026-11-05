@@ -4,17 +4,22 @@
 # Control machine (first play):
 #   Generates a test CA, a client certificate, and a server certificate for
 #   each of PostgreSQL and Redis in `tls_src_dir`, defined once in
-#   molecule.yml. The CA private keys stay here.
+#   molecule.yml. The CA private keys stay here. For the SIPREC interface,
+#   it generates SIPREC-CA, the recorder's certificate, and a client
+#   certificate (tasks/siprec_certificates.yml).
 #
 # Target (second play):
 #   Installs PostgreSQL and Redis. Each service's task file uploads its own
 #   server certificate and the CA certificate into the service's directory,
-#   /etc/postgresql/tls or /etc/redis/tls.
+#   /etc/postgresql/tls or /etc/redis/tls. It also uploads the SIPREC client
+#   certificate, with which the tests connect to the recorder.
 #
 # Nothing in prepare writes to /etc/miarec/tls. The role creates a directory
 # per service there and uploads the client certificate and the CA certificate
 # from `tls_src_dir` during converge, the same way the production playbooks do.
-# A passing test therefore proves the role's upload, not the fixture's.
+# For the SIPREC interface, it uploads the recorder's certificate and key, and
+# the CA certificate of the clients. A passing test therefore proves the
+# role's upload, not the fixture's.
 
 - name: Generate TLS certificates on the control machine
   hosts: localhost
@@ -25,6 +30,9 @@
   tasks:
     - name: Include TLS certificate generation tasks
       include_tasks: tasks/certificates.yml
+
+    - name: Include SIPREC TLS certificate generation tasks
+      include_tasks: tasks/siprec_certificates.yml
 
 - name: Prepare TLS Environment
   hosts: all
@@ -44,3 +52,23 @@
 
     - name: Include Redis TLS setup tasks
       include_tasks: tasks/redis_tls.yml
+
+    # The tests connect to the recorder with `openssl s_client` from inside
+    # the container, with the client certificate of SIPREC-CA.
+    - name: Install OpenSSL for the SIPREC tests
+      package:
+        name: openssl
+        state: present
+
+    - name: Create the directory of the SIPREC test client
+      file:
+        path: /root/siprec-client
+        state: directory
+        mode: "0700"
+
+    - name: Upload the certificate and key of the SIPREC test client
+      copy:
+        src: "{{ tls_src_dir }}/siprec/{{ item }}"
+        dest: "/root/siprec-client/{{ item }}"
+        mode: "0600"
+      loop: [client.crt, client.key]

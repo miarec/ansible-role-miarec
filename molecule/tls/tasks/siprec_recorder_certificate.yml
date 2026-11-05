@@ -1,9 +1,10 @@
 ---
 # Create the recorder's certificate and key for SIP over TLS in
-# siprec_recorder_dir on the host: recorder.key, and recorder.crt, which
-# SIPREC-CA (tasks/siprec_certificates.yml) signs for the inventory host name.
-# prepare.yml and side_effect.yml fetch them to the control machine, where the
-# role uploads them from.
+# siprec_recorder_dir on the control machine: recorder.key, and recorder.crt,
+# which SIPREC-CA (tls_src_dir/siprec/ca.key and ca.crt) signs for localhost,
+# where the tests connect, as the PostgreSQL and Redis server certificates are
+# issued. prepare.yml runs these tasks for the first certificate, and
+# side_effect.yml for the renewed one. The role uploads the files from here.
 
 - name: SIPREC | Create the directory of the recorder's certificate
   file:
@@ -25,13 +26,17 @@
       prompt = no
 
       [req_distinguished_name]
-      CN = {{ inventory_hostname }}
+      CN = localhost
 
       [v3_req]
       basicConstraints = CA:FALSE
       keyUsage = digitalSignature, keyEncipherment
       extendedKeyUsage = serverAuth
-      subjectAltName = DNS:{{ inventory_hostname }}
+      subjectAltName = @alt_names
+
+      [alt_names]
+      DNS.1 = localhost
+      IP.1 = 127.0.0.1
     dest: "{{ siprec_recorder_dir }}/recorder.cnf"
     mode: "0644"
 
@@ -48,8 +53,8 @@
   command: >
     openssl x509 -req
     -in {{ siprec_recorder_dir }}/recorder.csr
-    -CA /etc/miarec/tls/siprec-ca.crt
-    -CAkey /etc/miarec/tls/siprec-ca.key
+    -CA {{ tls_src_dir }}/siprec/ca.crt
+    -CAkey {{ tls_src_dir }}/siprec/ca.key
     -CAcreateserial
     -out {{ siprec_recorder_dir }}/recorder.crt
     -days 365 -sha256

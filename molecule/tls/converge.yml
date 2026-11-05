@@ -41,3 +41,13 @@
         miarec_redis_tls_ca_file_src: "{{ tls_src_dir }}/redis/ca.crt"
         miarec_redis_tls_cert_file_src: "{{ tls_src_dir }}/redis/client.crt"
         miarec_redis_tls_key_file_src: "{{ tls_src_dir }}/redis/client.key"
+        # SIP over TLS on the SIPREC interface, with client certificates. The
+        # role uploads the recorder's certificate and key, and the CA of the
+        # clients, into a directory of its own.
+        miarec_siprec_tls_port: 5081
+        miarec_siprec_tls_cert_file: /etc/miarec/tls/siprec/recorder.crt
+        miarec_siprec_tls_key_file: /etc/miarec/tls/siprec/recorder.key
+        miarec_siprec_tls_ca_file: /etc/miarec/tls/siprec/ca.crt
+        miarec_siprec_tls_cert_file_src: "{{ tls_src_dir }}/siprec/recorder.crt"
+        miarec_siprec_tls_key_file_src: "{{ tls_src_dir }}/siprec/recorder.key"
+        miarec_siprec_tls_ca_file_src: "{{ tls_src_dir }}/siprec/ca.crt"

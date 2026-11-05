@@ -6,11 +6,10 @@
 # (tests/test_siprec_tls.py).
 
 - name: Renew the recorder's SIPREC TLS certificate on the control machine
-  hosts: all
-  become: true
-
-  vars:
-    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
 
   tasks:
     - name: Keep the first certificate of the recorder for the verify step
@@ -18,35 +17,27 @@
         src: "{{ tls_src_dir }}/siprec/recorder.crt"
         dest: "{{ tls_src_dir }}/siprec/recorder-first.crt"
         mode: "0644"
-      delegate_to: localhost
-      become: false
 
-    # The CA of the recorder's certificate stayed on the host (see
-    # tasks/siprec_certificates.yml), so the host signs the renewed one too.
-    - name: Create a temporary directory for the renewed certificate
-      tempfile:
-        state: directory
-        suffix: .siprec-renewed
-      register: _siprec_renewed_dir
-
+    # SIPREC-CA (tasks/siprec_certificates.yml) signs the renewed certificate
+    # too, so the clients keep trusting the recorder.
     - name: Create the renewed certificate and key of the recorder
       include_tasks: tasks/siprec_recorder_certificate.yml
       vars:
-        siprec_recorder_dir: "{{ _siprec_renewed_dir.path }}"
+        siprec_recorder_dir: "{{ tls_src_dir }}/siprec-renewed"
 
-    - name: Fetch the renewed certificate and key to the control machine
-      fetch:
-        src: "{{ _siprec_renewed_dir.path }}/{{ item }}"
-        dest: "{{ tls_src_dir }}/siprec/"
-        flat: true
+    - name: Replace the recorder's certificate and key with the renewed ones
+      copy:
+        src: "{{ tls_src_dir }}/siprec-renewed/{{ item }}"
+        dest: "{{ tls_src_dir }}/siprec/{{ item }}"
+        mode: "0600"
       loop: [recorder.crt, recorder.key]
 
-    - name: Remove the renewed certificate and key from the host
-      file:
-        path: "{{ _siprec_renewed_dir.path }}"
-        state: absent
+- name: Read the main PID of the recorder before the role runs
+  hosts: all
+  become: true
 
-    - name: Read the state of the recorder's service before the role runs
+  tasks:
+    - name: Read the state of the recorder's service
       systemd:
         name: miarec
       register: _siprec_service_before
@@ -62,9 +53,6 @@
   hosts: all
   become: true
 
-  vars:
-    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
-
   tasks:
     - name: Read the checksums of the renewed certificate and key on the control machine
       stat:
@@ -76,7 +64,7 @@
 
     - name: Read the checksums of the certificate and key on the host
       stat:
-        path: "/etc/miarec/siprec-tls/{{ item }}"
+        path: "/etc/miarec/tls/siprec/{{ item }}"
       loop: [recorder.crt, recorder.key]
       register: _siprec_renewed_host
 
