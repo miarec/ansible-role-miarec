@@ -29,7 +29,7 @@ def test_miarec_ini_has_tls_settings(host):
 
 
 def test_tls_certificate_files_exist(host):
-    """Test that TLS certificate files exist with correct permissions."""
+    """Test that the role uploaded the TLS files with correct permissions."""
     ca_file = host.file('/etc/miarec/tls/ca.crt')
     assert ca_file.exists
     assert ca_file.mode == 0o644
@@ -42,6 +42,24 @@ def test_tls_certificate_files_exist(host):
     assert client_key.exists
     assert client_key.mode == 0o640
     assert client_key.group == 'miarec'
+
+
+def test_ca_key_not_on_host(host):
+    """The CA private key stays on the control machine."""
+    assert not host.file('/etc/miarec/tls/ca.key').exists
+
+
+def test_server_tls_files_exist(host):
+    """Test that prepare uploaded the server-side TLS files."""
+    for path in [
+        '/etc/postgresql/tls/server.crt',
+        '/etc/postgresql/tls/server.key',
+        '/etc/postgresql/tls/ca.crt',
+        '/etc/redis/tls/server.crt',
+        '/etc/redis/tls/server.key',
+        '/etc/redis/tls/ca.crt',
+    ]:
+        assert host.file(path).is_file, f"Not a file: {path}"
 
 
 def test_postgresql_tls_connection(host):

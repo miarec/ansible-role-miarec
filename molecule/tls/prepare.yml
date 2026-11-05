@@ -1,4 +1,33 @@
 ---
+# The TLS fixtures are split between the control machine and the target.
+#
+# Control machine (first play):
+#   Generates the test CA, the client certificate, and the PostgreSQL and
+#   Redis server certificates in `tls_src_dir`. The CA private key stays here.
+#
+# Target (second play):
+#   Installs PostgreSQL and Redis. Each service's task file uploads its own
+#   server certificate and the CA certificate into the service's directory,
+#   /etc/postgresql/tls or /etc/redis/tls.
+#
+# Nothing in prepare writes to /etc/miarec/tls. The role creates that
+# directory and uploads the client certificate and the CA certificate from
+# `tls_src_dir` during converge, the same way the production playbooks do.
+# A passing test therefore proves the role's upload, not the fixture's.
+
+- name: Generate TLS certificates on the control machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  vars:
+    tls_src_dir: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/tls"
+
+  tasks:
+    - name: Include TLS certificate generation tasks
+      include_tasks: tasks/certificates.yml
+
 - name: Prepare TLS Environment
   hosts: all
   become: true
@@ -15,26 +44,8 @@
         state: present
       when: ansible_facts['os_family'] == "Debian"
 
-    - name: Include TLS certificate generation tasks
-      include_tasks: tasks/certificates.yml
-
     - name: Include PostgreSQL TLS setup tasks
       include_tasks: tasks/postgresql_tls.yml
 
     - name: Include Redis TLS setup tasks
       include_tasks: tasks/redis_tls.yml
-
-    # The role uploads these files from the control machine, like the
-    # production playbooks do. Move them off the host, so the test proves it.
-    - name: Fetch the TLS files that the role uploads
-      fetch:
-        src: "/etc/miarec/tls/{{ item }}"
-        dest: "{{ tls_src_dir }}/"
-        flat: true
-      loop: [ca.crt, client.crt, client.key]
-
-    - name: Remove the fetched TLS files from the host
-      file:
-        path: "/etc/miarec/tls/{{ item }}"
-        state: absent
-      loop: [ca.crt, client.crt, client.key]

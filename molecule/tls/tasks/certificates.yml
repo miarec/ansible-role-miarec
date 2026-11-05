@@ -1,52 +1,50 @@
 ---
-# Generate TLS certificates for PostgreSQL and Redis testing
+# Generate the test CA and every certificate it signs on the control machine.
+# These tasks run in the `hosts: localhost` play of prepare.yml and write to
+# `tls_src_dir` only. Nothing here touches the target.
+#
+# Layout of tls_src_dir:
+#   ca.key, ca.crt           Test CA. The key never leaves the control machine.
+#   client.key, client.crt   Client certificate. The role uploads these to the
+#                            target during converge.
+#   postgresql/server.*      PostgreSQL server certificate. postgresql_tls.yml
+#                            uploads it.
+#   redis/server.*           Redis server certificate. redis_tls.yml uploads it.
+#
+# Every command has `creates:`, so a second `molecule prepare` reuses the CA
+# and the client and server certificates keep chaining to it.
 
-- name: Install OpenSSL
-  package:
-    name: openssl
-    state: present
-
-- name: Create miarec TLS directory
-  # The role sets the group and mode of the TLS directory itself. Ansible
-  # creates the parent with the same mode, and the service user must be able
-  # to traverse it, so leave both world-traversable here.
+- name: Create certificate directories
   file:
-    path: /etc/miarec/tls
+    path: "{{ tls_src_dir }}/{{ item }}"
     state: directory
-    owner: root
-    mode: "0755"
+    mode: "0700"
+  loop:
+    - ""
+    - postgresql
+    - redis
 
-# Generate CA
+# ============ CA ============
 - name: Generate CA private key
-  command: openssl genrsa -out /etc/miarec/tls/ca.key 4096
+  command: openssl genrsa -out {{ tls_src_dir }}/ca.key 4096
   args:
-    creates: /etc/miarec/tls/ca.key
-
-- name: Set CA key permissions
-  file:
-    path: /etc/miarec/tls/ca.key
-    mode: "0600"
+    creates: "{{ tls_src_dir }}/ca.key"
 
 - name: Generate CA certificate
   command: >
     openssl req -x509 -new -nodes
-    -key /etc/miarec/tls/ca.key
+    -key {{ tls_src_dir }}/ca.key
     -sha256 -days 365
-    -out /etc/miarec/tls/ca.crt
+    -out {{ tls_src_dir }}/ca.crt
     -subj "/CN=Test-CA"
   args:
-    creates: /etc/miarec/tls/ca.crt
+    creates: "{{ tls_src_dir }}/ca.crt"
 
-- name: Set CA certificate permissions
-  file:
-    path: /etc/miarec/tls/ca.crt
-    mode: "0644"
-
-# Generate Client Certificate
+# ============ Client certificate ============
 - name: Generate client private key
-  command: openssl genrsa -out /etc/miarec/tls/client.key 2048
+  command: openssl genrsa -out {{ tls_src_dir }}/client.key 2048
   args:
-    creates: /etc/miarec/tls/client.key
+    creates: "{{ tls_src_dir }}/client.key"
 
 - name: Create client certificate config
   copy:
@@ -62,40 +60,85 @@
       [v3_req]
       keyUsage = digitalSignature
       extendedKeyUsage = clientAuth
-    dest: /etc/miarec/tls/client.cnf
+    dest: "{{ tls_src_dir }}/client.cnf"
     mode: "0644"
 
 - name: Generate client CSR
   command: >
     openssl req -new
-    -key /etc/miarec/tls/client.key
-    -out /etc/miarec/tls/client.csr
-    -config /etc/miarec/tls/client.cnf
+    -key {{ tls_src_dir }}/client.key
+    -out {{ tls_src_dir }}/client.csr
+    -config {{ tls_src_dir }}/client.cnf
   args:
-    creates: /etc/miarec/tls/client.csr
+    creates: "{{ tls_src_dir }}/client.csr"
 
 - name: Sign client certificate with CA
   command: >
     openssl x509 -req
-    -in /etc/miarec/tls/client.csr
-    -CA /etc/miarec/tls/ca.crt
-    -CAkey /etc/miarec/tls/ca.key
+    -in {{ tls_src_dir }}/client.csr
+    -CA {{ tls_src_dir }}/ca.crt
+    -CAkey {{ tls_src_dir }}/ca.key
     -CAcreateserial
-    -out /etc/miarec/tls/client.crt
+    -out {{ tls_src_dir }}/client.crt
     -days 365 -sha256
     -extensions v3_req
-    -extfile /etc/miarec/tls/client.cnf
+    -extfile {{ tls_src_dir }}/client.cnf
   args:
-    creates: /etc/miarec/tls/client.crt
+    creates: "{{ tls_src_dir }}/client.crt"
 
-- name: Set client key permissions
-  file:
-    path: /etc/miarec/tls/client.key
-    owner: root
-    mode: "0640"
+# ============ Server certificates ============
+# PostgreSQL and Redis run on the target and listen on the loopback interface,
+# so both certificates are issued for localhost.
+- name: Generate server private key
+  command: openssl genrsa -out {{ tls_src_dir }}/{{ item }}/server.key 2048
+  args:
+    creates: "{{ tls_src_dir }}/{{ item }}/server.key"
+  loop: [postgresql, redis]
 
-- name: Set client certificate permissions
-  file:
-    path: /etc/miarec/tls/client.crt
-    owner: root
+- name: Create server certificate config
+  copy:
+    content: |
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = localhost
+
+      [v3_req]
+      keyUsage = keyEncipherment, dataEncipherment
+      extendedKeyUsage = serverAuth
+      subjectAltName = @alt_names
+
+      [alt_names]
+      DNS.1 = localhost
+      IP.1 = 127.0.0.1
+    dest: "{{ tls_src_dir }}/{{ item }}/server.cnf"
     mode: "0644"
+  loop: [postgresql, redis]
+
+- name: Generate server CSR
+  command: >
+    openssl req -new
+    -key {{ tls_src_dir }}/{{ item }}/server.key
+    -out {{ tls_src_dir }}/{{ item }}/server.csr
+    -config {{ tls_src_dir }}/{{ item }}/server.cnf
+  args:
+    creates: "{{ tls_src_dir }}/{{ item }}/server.csr"
+  loop: [postgresql, redis]
+
+- name: Sign server certificate with CA
+  command: >
+    openssl x509 -req
+    -in {{ tls_src_dir }}/{{ item }}/server.csr
+    -CA {{ tls_src_dir }}/ca.crt
+    -CAkey {{ tls_src_dir }}/ca.key
+    -CAcreateserial
+    -out {{ tls_src_dir }}/{{ item }}/server.crt
+    -days 365 -sha256
+    -extensions v3_req
+    -extfile {{ tls_src_dir }}/{{ item }}/server.cnf
+  args:
+    creates: "{{ tls_src_dir }}/{{ item }}/server.crt"
+  loop: [postgresql, redis]
