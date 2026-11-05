@@ -27,15 +27,14 @@ The recorder can accept SIPREC sessions over TLS, optionally with client certifi
 
 | Variable | Default | `miarec.ini` setting | Description |
 | --- | --- | --- | --- |
-| `miarec_siprec_tls_port` | `0` | `PortTLS` | The TLS port, for example, `5081`. `0` turns TLS off. |
-| `miarec_siprec_tls_cert_file` | `""` | `SSLCertificate` | The path of the recorder's certificate on the host. Required when TLS is on. |
-| `miarec_siprec_tls_key_file` | `""` | `SSLPrivateKey` | The path of the recorder's private key on the host. Required when TLS is on. |
+| `miarec_siprec_tls_cert_file` | `""` | `SSLCertificate` | The path of the recorder's certificate on the host. Set it with the key. |
+| `miarec_siprec_tls_key_file` | `""` | `SSLPrivateKey` | The path of the recorder's private key on the host. Set it with the certificate. |
 | `miarec_siprec_tls_ca_file` | `""` | `SSLCACertificates` | The path of a PEM file on the host with the CA certificates of the clients. Set it to require client certificates. |
 | `miarec_siprec_tls_cert_file_src` | `""` | None | A local copy of the certificate. When it's set, the role uploads the file to `miarec_siprec_tls_cert_file` and restarts the recorder when the file changed. Leave it empty when the file is already on the host. |
 | `miarec_siprec_tls_key_file_src` | `""` | None | A local copy of the private key, see `miarec_siprec_tls_cert_file_src`. |
 | `miarec_siprec_tls_ca_file_src` | `""` | None | A local copy of the CA file, see `miarec_siprec_tls_cert_file_src`. |
 
-The role always sets `PortTLS`, so that setting `miarec_siprec_tls_port` to `0` turns TLS off on a host where it was on. It sets the other three settings only when TLS is on. When a setting changes, the role restarts the recorder.
+The TLS port, `PortTLS`, is a recorder setting of the MiaRec web portal, not a variable of the role: an operator turns TLS on and off there. The role writes the three file settings when any of the paths is set, and restarts the recorder when a setting changes.
 
 ### The recorder's certificate and key
 
@@ -43,7 +42,7 @@ The recorder's certificate comes from the CA of your deployment, as the PostgreS
 
 Before it changes the host, the role verifies that `miarec_bin_user` can read every TLS file in use, uploaded or not, as it does for the PostgreSQL and Redis files, and fails the play when it can't.
 
-The role requires both paths when TLS is on because, when `SSLCertificate` and `SSLPrivateKey` name files that don't exist, the recorder creates a self-signed certificate of its own at startup. A client that verifies or pins the recorder's certificate can't know that certificate before the recorder starts, and the certificate changes whenever its files are lost.
+Set the certificate and the key together, or neither, or the role fails. When `SSLCertificate` and `SSLPrivateKey` name files that don't exist, the recorder creates a self-signed certificate of its own at startup. A client that verifies or pins the recorder's certificate can't know that certificate before the recorder starts, and the certificate changes whenever its files are lost.
 
 ### Client certificates (mutual TLS)
 
@@ -51,7 +50,7 @@ When `miarec_siprec_tls_ca_file` is set, the recorder requires a client certific
 
 ### Settings in the MiaRec database
 
-The recorder settings that the MiaRec web application stores in the database take precedence over `miarec.ini`, which is the fallback. If the web application sets any of these settings for a recorder, the recorder uses the value from the database, and the role's value has no effect.
+The recorder settings that the MiaRec web application stores in the database take precedence over `miarec.ini`, which is the fallback. If the web application sets any of these settings for a recorder, the recorder uses the value from the database, and the role's value has no effect. The TLS port is set there only.
 
 
 Example Playbook

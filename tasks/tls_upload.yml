@@ -33,7 +33,7 @@
         (
           (_miarec_db_tls_files if miarec_db_use_ssl | bool else [])
           + (_miarec_redis_tls_files if miarec_redis_use_ssl | bool else [])
-          + (_miarec_siprec_tls_files if miarec_siprec_tls_port | int != 0 else [])
+          + _miarec_siprec_tls_files
         ) | selectattr('src') | list
       }}
   block:

@@ -46,8 +46,9 @@ miarec_redis_tls_key_file_src: ""
 
 # -----------------------------
 # SIP over TLS on the SIPREC interface ([Protocol::SIPREC] in miarec.ini)
+# The TLS port (PortTLS) is a recorder setting of the web portal, not a
+# variable of the role. Set the certificate and the key together, or neither.
 # -----------------------------
-miarec_siprec_tls_port: 0        # PortTLS. 0 turns TLS off.
 miarec_siprec_tls_cert_file: ""  # SSLCertificate: the recorder's certificate
 miarec_siprec_tls_key_file: ""   # SSLPrivateKey: the recorder's private key
 miarec_siprec_tls_ca_file: ""    # SSLCACertificates: the CA certificates of the clients.

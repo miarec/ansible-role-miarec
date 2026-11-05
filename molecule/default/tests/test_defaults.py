@@ -58,13 +58,12 @@ def test_socket(host):
         assert s.is_listening
 
 
-def test_siprec_tls_is_off(host):
-    """By default, the SIPREC interface has no TLS port and no certificate."""
+def test_siprec_tls_has_no_files(host):
+    """By default, the role sets no certificate on the SIPREC interface."""
     content = host.file("/opt/miarec/current/miarec.ini").content_string
     section = re.search(r"^\[Protocol::SIPREC\]\n(.*?)(?=^\[)", content, re.M | re.S)
     assert section, "miarec.ini has no [Protocol::SIPREC] section"
     settings = dict(re.findall(r"^(\w+)\s*=[ \t]*(.*?)[ \t]*$", section.group(1), re.M))
-    assert settings["PortTLS"] == "0"
     assert settings["SSLCertificate"] == ""
     assert settings["SSLPrivateKey"] == ""
     assert settings["SSLCACertificates"] == ""

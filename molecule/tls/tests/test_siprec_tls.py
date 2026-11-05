@@ -21,6 +21,7 @@ testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
     os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
 
 INI = "/opt/miarec/current/miarec.ini"
+# PortTLS, which converge.yml sets through miarec_custom_ini_settings.
 PORT = 5081
 # The recorder's certificate is issued for localhost (tasks/siprec_recorder_certificate.yml).
 RECORDER_NAME = "localhost"
@@ -126,7 +127,6 @@ def test_the_recorder_user_can_read_the_key(host):
 
 def test_miarec_ini_has_the_siprec_tls_settings(host):
     settings = siprec_settings(host)
-    assert settings["PortTLS"] == str(PORT)
     assert settings["SSLCertificate"] == CERT
     assert settings["SSLPrivateKey"] == KEY
     assert settings["SSLCACertificates"] == CA

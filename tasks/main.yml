@@ -38,10 +38,15 @@
 # A file is uploaded when its *_src variable is set. The private keys get
 # the group created above. The role sets permissions only on the files it
 # uploads; a file that is already on the host is left as is.
+# The SIPREC listener uses TLS files when any of its paths is set.
 # --------------------------------------------------
+- name: Check whether the SIPREC listener uses TLS files
+  set_fact:
+    _miarec_siprec_tls: "{{ [miarec_siprec_tls_cert_file, miarec_siprec_tls_key_file, miarec_siprec_tls_ca_file] | select | length > 0 }}"
+
 - name: Upload TLS files
   import_tasks: tls_upload.yml
-  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or miarec_siprec_tls_port | int != 0
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or _miarec_siprec_tls | bool
   become: true
 
 # --------------------------------------------------
@@ -51,7 +56,7 @@
 # --------------------------------------------------
 - name: Verify the TLS files are readable
   import_tasks: tls_verify.yml
-  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or miarec_siprec_tls_port | int != 0
+  when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool or _miarec_siprec_tls | bool
   become: true
 
 # --------------------------------------------------

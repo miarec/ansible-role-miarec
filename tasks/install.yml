@@ -222,20 +222,11 @@
 
 # --------------------------------------------------
 # SIP over TLS on the SIPREC interface (Protocol::SIPREC)
-# PortTLS is always set, so that 0 turns TLS off on a host where it was on.
-# An empty SSLCACertificates turns client certificates off.
+# The TLS port (PortTLS) is a recorder setting of the web portal. The file
+# settings are written when any of the paths is set; the web portal's
+# settings take precedence over them. An empty SSLCACertificates turns
+# client certificates off.
 # --------------------------------------------------
-- name: Configure SIPREC TLS port in miarec.ini
-  ini_file:
-    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
-    section: 'Protocol::SIPREC'
-    option: 'PortTLS'
-    value: '{{ miarec_siprec_tls_port | int }}'
-    owner: root
-    group: '{{ miarec_bin_group }}'
-    mode: u=rwX,g=rX,o=
-  notify: Restart miarec
-
 - name: Configure SIPREC TLS settings in miarec.ini
   ini_file:
     dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
@@ -249,7 +240,7 @@
     - { option: 'SSLCertificate', value: '{{ miarec_siprec_tls_cert_file }}' }
     - { option: 'SSLPrivateKey', value: '{{ miarec_siprec_tls_key_file }}' }
     - { option: 'SSLCACertificates', value: '{{ miarec_siprec_tls_ca_file }}' }
-  when: miarec_siprec_tls_port | int != 0
+  when: _miarec_siprec_tls | bool
   notify: Restart miarec
 
 # --------------------------------------------------

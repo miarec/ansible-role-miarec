@@ -44,10 +44,14 @@
         # SIP over TLS on the SIPREC interface, with client certificates. The
         # role uploads the recorder's certificate and key, and the CA of the
         # clients, into a directory of its own.
-        miarec_siprec_tls_port: 5081
         miarec_siprec_tls_cert_file: /etc/miarec/tls/siprec/recorder.crt
         miarec_siprec_tls_key_file: /etc/miarec/tls/siprec/recorder.key
         miarec_siprec_tls_ca_file: /etc/miarec/tls/siprec/ca.crt
         miarec_siprec_tls_cert_file_src: "{{ tls_src_dir }}/siprec/recorder.crt"
         miarec_siprec_tls_key_file_src: "{{ tls_src_dir }}/siprec/recorder.key"
         miarec_siprec_tls_ca_file_src: "{{ tls_src_dir }}/siprec/ca.crt"
+        # The TLS port is a recorder setting of the web portal, which the
+        # scenario doesn't have. Set it in miarec.ini, which the recorder
+        # falls back to.
+        miarec_custom_ini_settings:
+          - { section: 'Protocol::SIPREC', option: PortTLS, value: 5081 }
