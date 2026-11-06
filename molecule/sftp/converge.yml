@@ -5,15 +5,11 @@
 
   vars:
     miarec_sftp_create_user: true
-    # sshd accepts a chroot only when root owns every directory on its path,
-    # and no group or other user can write to them. The only parent of
-    # /var/recordings is /var. The default, /var/miarec/recordings, has the
-    # parent /var/miarec, which the role creates as miarec_bin_user, mode 2775.
-    miarec_sftp_dir: /var/recordings
-    # The recorder's folder in the chroot. install.yml gives it to
-    # miarec_bin_user and miarec_bin_group, and the SFTP user writes to it
-    # through that group.
-    miarec_recordings_dir: "/var/recordings/{{ miarec_instance_name }}"
+    # The chroot and the recorder's folder keep the role's defaults:
+    # /var/recordings, whose only parent is /var, and
+    # /var/recordings/<miarec_instance_name>. install.yml gives the recorder's
+    # folder to miarec_bin_user and miarec_bin_group, and the SFTP user writes
+    # to it through that group.
     miarec_sftp_group: "{{ miarec_bin_group }}"
     miarec_sftp_pubkey_file: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/sftp_test_key.pub"
 

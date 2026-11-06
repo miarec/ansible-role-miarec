@@ -34,7 +34,7 @@
         flat: true
 
     # The parents of chroots that sshd refuses (converge.yml). This one is like
-    # /var/miarec, which the role creates as miarec_bin_user, mode 2775, when
+    # a parent that install.yml creates as miarec_bin_user, mode 2775, when
     # miarec_recordings_dir is under it: a user other than root owns it.
     - name: Create a directory that a user other than root owns
       file:

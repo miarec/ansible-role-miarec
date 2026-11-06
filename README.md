@@ -17,7 +17,10 @@ Role Variables
 - `miarec_redis_port`: The Redis port (default: 6379)
 - `miarec_install_dir`: The installation directory (default: /opt/miarec)
 - `miarec_log_dir`: The location of log files (default: /var/log/miarec)
-- `miarec_recordings_dir`: The location for recording files (default: /var/miarec/recordings). This option is configurable via web portal.
+- `miarec_recordings_dir`: The location for recording files (default: `/var/recordings/{{ miarec_instance_name }}`). This option is configurable via web portal.
+- `miarec_sftp_create_user`: Create a chrooted SFTP user for remote access to the recordings (default: false).
+- `miarec_sftp_dir`: The chroot of the SFTP user (default: /var/recordings). sshd requires root to own this directory and each of its parents, and none of them can be writable by group or others. The recordings directory lives inside it.
+- `miarec_sftp_group`: The group of the SFTP user (default: miarecsftp). Set it to `miarec_bin_group` to let the SFTP user write to the recordings directory.
 
 
 SIP over TLS on the SIPREC interface
