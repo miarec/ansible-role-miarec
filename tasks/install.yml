@@ -132,6 +132,11 @@
     - section: 'SQLConfig'
       option: 'Password'
       value: '{{ miarec_db_password }}'
+    # UseSSL is always written, so that disabling TLS takes effect on a
+    # redeploy of the same version, which keeps the existing ini file.
+    - section: 'SQLConfig'
+      option: 'UseSSL'
+      value: "{{ 'true' if miarec_db_use_ssl | bool else 'false' }}"
     - section: 'SQLCallsLog'
       option: 'Host'
       value: '{{ miarec_db_host }}:{{ miarec_db_port }}'
@@ -144,9 +149,15 @@
     - section: 'SQLCallsLog'
       option: 'Password'
       value: '{{ miarec_db_password }}'
+    - section: 'SQLCallsLog'
+      option: 'UseSSL'
+      value: "{{ 'true' if miarec_db_use_ssl | bool else 'false' }}"
     - section: 'RedisCallsLog'
       option: 'Host'
       value: '{{ miarec_redis_host }}:{{ miarec_redis_port }}'
+    - section: 'RedisCallsLog'
+      option: 'UseSSL'
+      value: "{{ 'true' if miarec_redis_use_ssl | bool else 'false' }}"
     - section: 'FileCallsLog'
       option: 'DetailFile'
       value: '{{ miarec_log_dir }}/cdr/calls_log.csv'
@@ -186,12 +197,10 @@
     group: '{{ miarec_bin_group }}'
     mode: u=rwX,g=rX,o=
   loop:
-    - { section: 'SQLConfig', option: 'UseSSL', value: 'true' }
     - { section: 'SQLConfig', option: 'SSLCACertificates', value: '{{ miarec_db_tls_ca_file }}' }
     - { section: 'SQLConfig', option: 'SSLCertificate', value: '{{ miarec_db_tls_cert_file }}' }
     - { section: 'SQLConfig', option: 'SSLPrivateKey', value: '{{ miarec_db_tls_key_file }}' }
     - { section: 'SQLConfig', option: 'CheckHostName', value: "{{ 'true' if miarec_db_tls_check_hostname | bool else 'false' }}" }
-    - { section: 'SQLCallsLog', option: 'UseSSL', value: 'true' }
     - { section: 'SQLCallsLog', option: 'SSLCACertificates', value: '{{ miarec_db_tls_ca_file }}' }
     - { section: 'SQLCallsLog', option: 'SSLCertificate', value: '{{ miarec_db_tls_cert_file }}' }
     - { section: 'SQLCallsLog', option: 'SSLPrivateKey', value: '{{ miarec_db_tls_key_file }}' }
@@ -212,7 +221,6 @@
     group: '{{ miarec_bin_group }}'
     mode: u=rwX,g=rX,o=
   loop:
-    - { section: 'RedisCallsLog', option: 'UseSSL', value: 'true' }
     - { section: 'RedisCallsLog', option: 'SSLCACertificates', value: '{{ miarec_redis_tls_ca_file }}' }
     - { section: 'RedisCallsLog', option: 'SSLCertificate', value: '{{ miarec_redis_tls_cert_file }}' }
     - { section: 'RedisCallsLog', option: 'SSLPrivateKey', value: '{{ miarec_redis_tls_key_file }}' }
@@ -223,9 +231,10 @@
 # --------------------------------------------------
 # SIP over TLS on the SIPREC interface (Protocol::SIPREC)
 # The TLS port (PortTLS) is a recorder setting of the web portal. The file
-# settings are written when any of the paths is set; the web portal's
-# settings take precedence over them. An empty SSLCACertificates turns
-# client certificates off.
+# settings are always written, so that a cleared path takes effect on a
+# redeploy of the same version, which keeps the existing ini file. The web
+# portal's settings take precedence over them. An empty SSLCACertificates
+# turns client certificates off.
 # --------------------------------------------------
 - name: Configure SIPREC TLS settings in miarec.ini
   ini_file:
@@ -240,7 +249,6 @@
     - { option: 'SSLCertificate', value: '{{ miarec_siprec_tls_cert_file }}' }
     - { option: 'SSLPrivateKey', value: '{{ miarec_siprec_tls_key_file }}' }
     - { option: 'SSLCACertificates', value: '{{ miarec_siprec_tls_ca_file }}' }
-  when: _miarec_siprec_tls | bool
   notify: Restart miarec
 
 # --------------------------------------------------
