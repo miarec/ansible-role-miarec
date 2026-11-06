@@ -121,8 +121,11 @@ miarec_work_dir: /opt/miarec/shared
 # because usually /opt and /var are located on different disk partitions.
 miarec_log_dir: /var/log/miarec
 
-# Default directory for recordings. It could be changes via web portal
-miarec_recordings_dir: /var/miarec/recordings
+# Default directory for recordings. It can be changed via web portal.
+# It is a sub-directory of miarec_sftp_dir, so that the chrooted SFTP user
+# (miarec_sftp_create_user) can reach it: sshd requires root to own the
+# chroot and its parents, while the recorder owns this directory.
+miarec_recordings_dir: "/var/recordings/{{ miarec_instance_name }}"
 
 
 miarec_download_base_url: "https://miarec-download.s3.amazonaws.com"
@@ -159,10 +162,14 @@ miarec_custom_call_stop_sql: ""
 # This will create a local user account with the following restrictions:
 #   - SSH login is forbidden. Only SFTP is allowed
 #   - Access is limited to the specified directory (chroot is used)
+# sshd requires root to own miarec_sftp_dir and each of its parents, and none
+# of them can be writable by group or others. The recorder's folder,
+# miarec_recordings_dir, lives inside it. To let the SFTP user write there,
+# set miarec_sftp_group to miarec_bin_group.
 miarec_sftp_create_user: false
 miarec_sftp_group: "miarecsftp"
 miarec_sftp_user: "miarecsftp"
 miarec_sftp_password: ""
 miarec_sftp_pubkey_file: ""
-miarec_sftp_dir: "{{ miarec_recordings_dir }}"
+miarec_sftp_dir: /var/recordings
 miarec_sftp_allow_password: false

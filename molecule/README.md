@@ -12,13 +12,12 @@ MOLECULE_DISTRO=rockylinux9 MOLECULE_MIAREC_VERSION=7.0.0.100 uv run molecule te
 
 ## Scenarios
  - `default`: installs MiaRec and checks the service, its ports, and `/health`.
- - `sftp`: installs MiaRec with the chrooted SFTP user (`miarec_sftp_create_user: true`),
-   with the chroot `/var/recordings`. The tests log in with `sftp` and a key, read and
-   write in the recordings directory, and check that the user can't write to the chroot
+ - `sftp`: installs MiaRec with the chrooted SFTP user (`miarec_sftp_create_user: true`)
+   and the default chroot, `/var/recordings`. The tests log in with `sftp` and a key, read
+   and write in the recordings directory, and check that the user can't write to the chroot
    or run a shell. `converge.yml` also checks that the role fails on a chroot that sshd
-   refuses: one under a directory that a user other than root owns, as the role creates
-   `/var/miarec` for the default `miarec_recordings_dir`, and one under a group-writable
-   directory.
+   refuses: one under a directory that a user other than root owns, and one under a
+   group-writable directory.
    ```
    uv run molecule test -s sftp
    ```

@@ -44,12 +44,15 @@
 #
 # This role does not change the parent directories, because other software can use them.
 # Note: the "Create recordings directory" task in install.yml creates the missing parents of
-# miarec_recordings_dir with owner miarec_bin_user and mode 2775. With the default
-# miarec_recordings_dir, /var/miarec/recordings, it creates /var/miarec this way.
+# miarec_recordings_dir with owner miarec_bin_user and mode 2775. When miarec_sftp_dir is
+# one of those parents, the "Create sftp share directory" task above has already made it
+# root's. A parent that install.yml created under a custom miarec_sftp_dir fails this check.
+# sshd checks the target of a symlinked parent, not the link itself, so stat follows symlinks.
 # --------------------------------------------------
 - name: Get the parent directories of the sftp share directory
   stat:
     path: "{{ item }}"
+    follow: true
   loop: "{{ miarec_sftp_dir_parents }}"
   vars:
     miarec_sftp_dir_parents: >-
