@@ -44,6 +44,22 @@ miarec_redis_tls_ca_file_src: ""
 miarec_redis_tls_cert_file_src: ""
 miarec_redis_tls_key_file_src: ""
 
+# -----------------------------
+# SIP over TLS on the SIPREC interface ([Protocol::SIPREC] in miarec.ini)
+# The TLS port (PortTLS) is a recorder setting of the web portal, not a
+# variable of the role. Set the certificate and the key together, or neither.
+# -----------------------------
+miarec_siprec_tls_cert_file: ""  # SSLCertificate: the recorder's certificate
+miarec_siprec_tls_key_file: ""   # SSLPrivateKey: the recorder's private key
+miarec_siprec_tls_ca_file: ""    # SSLCACertificates: the CA certificates of the clients.
+                                 # Set it to require client certificates (mTLS).
+# Local copies of the files above. When a *_src variable is set, the role uploads
+# the file to the matching miarec_siprec_tls_*_file path and restarts the recorder
+# when the file changed. Leave it empty when the file is already on the host.
+miarec_siprec_tls_ca_file_src: ""
+miarec_siprec_tls_cert_file_src: ""
+miarec_siprec_tls_key_file_src: ""
+
 miarec_bin_user: root
 miarec_bin_group: root
 miarec_bin_umask: "0002"

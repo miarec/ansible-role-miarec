@@ -22,7 +22,17 @@ MOLECULE_DISTRO=rockylinux9 MOLECULE_MIAREC_VERSION=7.0.0.100 uv run molecule te
    ```
    uv run molecule test -s sftp
    ```
- - `tls`: installs MiaRec with TLS connections to PostgreSQL and Redis.
+ - `tls`: installs MiaRec with TLS connections to PostgreSQL and Redis, and with SIP
+   over TLS on the SIPREC interface on port 5081, with client certificates. The role
+   uploads every TLS file from the control machine, where `prepare.yml` generates
+   them. The tests check the uploaded files, and send SIP OPTIONS with `openssl
+   s_client` with a client certificate of the deployment's CA, without a client
+   certificate, and with a client certificate of another CA. `side_effect.yml` renews
+   the recorder's certificate on the control machine and runs the role again, which
+   must upload it and restart the recorder.
+   ```
+   uv run molecule test -s tls
+   ```
 
 ## Variables
  - `MOLECULE_DISTRO` OS of docker container to test, default `ubuntu2404`

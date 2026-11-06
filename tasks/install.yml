@@ -221,6 +221,29 @@
   notify: Restart miarec
 
 # --------------------------------------------------
+# SIP over TLS on the SIPREC interface (Protocol::SIPREC)
+# The TLS port (PortTLS) is a recorder setting of the web portal. The file
+# settings are written when any of the paths is set; the web portal's
+# settings take precedence over them. An empty SSLCACertificates turns
+# client certificates off.
+# --------------------------------------------------
+- name: Configure SIPREC TLS settings in miarec.ini
+  ini_file:
+    dest: '{{ ansible_facts["deploy_helper"]["new_release_path"] }}/miarec.ini'
+    section: 'Protocol::SIPREC'
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: '{{ miarec_bin_group }}'
+    mode: u=rwX,g=rX,o=
+  loop:
+    - { option: 'SSLCertificate', value: '{{ miarec_siprec_tls_cert_file }}' }
+    - { option: 'SSLPrivateKey', value: '{{ miarec_siprec_tls_key_file }}' }
+    - { option: 'SSLCACertificates', value: '{{ miarec_siprec_tls_ca_file }}' }
+  when: _miarec_siprec_tls | bool
+  notify: Restart miarec
+
+# --------------------------------------------------
 # Custom configuration file in INI file
 # --------------------------------------------------
 - name: Custom miarec.ini file settings

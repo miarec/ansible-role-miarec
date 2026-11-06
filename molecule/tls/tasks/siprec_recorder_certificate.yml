@@ -1,0 +1,64 @@
+---
+# Create the recorder's certificate and key for SIP over TLS in
+# siprec_recorder_dir on the control machine: recorder.key, and recorder.crt,
+# which SIPREC-CA (tls_src_dir/siprec/ca.key and ca.crt) signs for localhost,
+# where the tests connect, as the PostgreSQL and Redis server certificates are
+# issued. prepare.yml runs these tasks for the first certificate, and
+# side_effect.yml for the renewed one. The role uploads the files from here.
+
+- name: SIPREC | Create the directory of the recorder's certificate
+  file:
+    path: "{{ siprec_recorder_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: SIPREC | Generate the recorder's key
+  command: openssl genrsa -out {{ siprec_recorder_dir }}/recorder.key 2048
+  args:
+    creates: "{{ siprec_recorder_dir }}/recorder.key"
+
+- name: SIPREC | Create the certificate config of the recorder
+  copy:
+    content: |
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = localhost
+
+      [v3_req]
+      basicConstraints = CA:FALSE
+      keyUsage = digitalSignature, keyEncipherment
+      extendedKeyUsage = serverAuth
+      subjectAltName = @alt_names
+
+      [alt_names]
+      DNS.1 = localhost
+      IP.1 = 127.0.0.1
+    dest: "{{ siprec_recorder_dir }}/recorder.cnf"
+    mode: "0644"
+
+- name: SIPREC | Generate the CSR of the recorder
+  command: >
+    openssl req -new
+    -key {{ siprec_recorder_dir }}/recorder.key
+    -out {{ siprec_recorder_dir }}/recorder.csr
+    -config {{ siprec_recorder_dir }}/recorder.cnf
+  args:
+    creates: "{{ siprec_recorder_dir }}/recorder.csr"
+
+- name: SIPREC | Sign the recorder's certificate with SIPREC-CA
+  command: >
+    openssl x509 -req
+    -in {{ siprec_recorder_dir }}/recorder.csr
+    -CA {{ tls_src_dir }}/siprec/ca.crt
+    -CAkey {{ tls_src_dir }}/siprec/ca.key
+    -CAcreateserial
+    -out {{ siprec_recorder_dir }}/recorder.crt
+    -days 365 -sha256
+    -extensions v3_req
+    -extfile {{ siprec_recorder_dir }}/recorder.cnf
+  args:
+    creates: "{{ siprec_recorder_dir }}/recorder.crt"

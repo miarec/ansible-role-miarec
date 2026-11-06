@@ -1,0 +1,89 @@
+---
+# Renew the recorder's SIPREC TLS certificate on the control machine, as an
+# operator does before it expires, and run the role again. The role must upload
+# the new certificate and key, and restart the recorder. The verify step
+# checks that the recorder presents the renewed certificate
+# (tests/test_siprec_tls.py).
+
+- name: Renew the recorder's SIPREC TLS certificate on the control machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Keep the first certificate of the recorder for the verify step
+      copy:
+        src: "{{ tls_src_dir }}/siprec/recorder.crt"
+        dest: "{{ tls_src_dir }}/siprec/recorder-first.crt"
+        mode: "0644"
+
+    # SIPREC-CA (tasks/siprec_certificates.yml) signs the renewed certificate
+    # too, so the clients keep trusting the recorder.
+    - name: Create the renewed certificate and key of the recorder
+      include_tasks: tasks/siprec_recorder_certificate.yml
+      vars:
+        siprec_recorder_dir: "{{ tls_src_dir }}/siprec-renewed"
+
+    - name: Replace the recorder's certificate and key with the renewed ones
+      copy:
+        src: "{{ tls_src_dir }}/siprec-renewed/{{ item }}"
+        dest: "{{ tls_src_dir }}/siprec/{{ item }}"
+        mode: "0600"
+      loop: [recorder.crt, recorder.key]
+
+- name: Read the main PID of the recorder before the role runs
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Read the state of the recorder's service
+      systemd:
+        name: miarec
+      register: _siprec_service_before
+
+    - name: Remember the main PID of the recorder
+      set_fact:
+        siprec_pid_before_renewal: "{{ _siprec_service_before.status.MainPID }}"
+
+- name: Run the role with the renewed certificate
+  import_playbook: converge.yml
+
+- name: Check that the role uploaded the renewed certificate and restarted the recorder
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Read the checksums of the renewed certificate and key on the control machine
+      stat:
+        path: "{{ tls_src_dir }}/siprec/{{ item }}"
+      loop: [recorder.crt, recorder.key]
+      register: _siprec_renewed_src
+      delegate_to: localhost
+      become: false
+
+    - name: Read the checksums of the certificate and key on the host
+      stat:
+        path: "/etc/miarec/tls/siprec/{{ item }}"
+      loop: [recorder.crt, recorder.key]
+      register: _siprec_renewed_host
+
+    - name: Check that the host has the renewed certificate and key
+      assert:
+        that:
+          - _siprec_renewed_host.results | map(attribute='stat.checksum') | list == _siprec_renewed_src.results | map(attribute='stat.checksum') | list
+        fail_msg: "The role didn't upload the renewed SIPREC TLS certificate and key."
+
+    - name: Read the state of the recorder's service after the role ran
+      systemd:
+        name: miarec
+      register: _siprec_service_after
+
+    - name: Check that the role restarted the recorder
+      assert:
+        that:
+          - _siprec_service_after.status.MainPID | int != 0
+          - _siprec_service_after.status.MainPID != siprec_pid_before_renewal
+        fail_msg: >-
+          The role didn't restart the recorder after it uploaded the renewed
+          certificate: the main PID is still {{ _siprec_service_after.status.MainPID }}.

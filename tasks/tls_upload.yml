@@ -24,11 +24,16 @@
       - { src: "{{ miarec_redis_tls_ca_file_src }}", dest: "{{ miarec_redis_tls_ca_file }}" }
       - { src: "{{ miarec_redis_tls_cert_file_src }}", dest: "{{ miarec_redis_tls_cert_file }}" }
       - { src: "{{ miarec_redis_tls_key_file_src }}", dest: "{{ miarec_redis_tls_key_file }}", private: true }
+    _miarec_siprec_tls_files:
+      - { src: "{{ miarec_siprec_tls_ca_file_src }}", dest: "{{ miarec_siprec_tls_ca_file }}" }
+      - { src: "{{ miarec_siprec_tls_cert_file_src }}", dest: "{{ miarec_siprec_tls_cert_file }}" }
+      - { src: "{{ miarec_siprec_tls_key_file_src }}", dest: "{{ miarec_siprec_tls_key_file }}", private: true }
     _miarec_tls_files: >-
       {{
         (
           (_miarec_db_tls_files if miarec_db_use_ssl | bool else [])
           + (_miarec_redis_tls_files if miarec_redis_use_ssl | bool else [])
+          + _miarec_siprec_tls_files
         ) | selectattr('src') | list
       }}
   block:

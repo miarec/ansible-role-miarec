@@ -1,0 +1,96 @@
+---
+# Generate the test PKI of the SIPREC interface on the control machine. These
+# tasks run in the `hosts: localhost` play of prepare.yml and write to
+# `tls_src_dir/siprec/` only. Nothing here touches the target.
+#
+# SIPREC-CA stands for the CA of a deployment: it signs the recorder's
+# certificate, which the clients verify, and the clients' certificates, which
+# the recorder verifies. Layout of tls_src_dir/siprec/:
+#   ca.key, ca.crt               SIPREC-CA. The key never leaves the control
+#                                machine. side_effect.yml signs the renewed
+#                                certificate of the recorder with it.
+#   recorder.key, recorder.crt   The recorder's certificate
+#                                (tasks/siprec_recorder_certificate.yml). The
+#                                role uploads them, with ca.crt, during converge.
+#   client.key, client.crt       A client certificate. prepare.yml uploads it
+#                                for the tests.
+# The tests use the PostgreSQL client certificate, which Test-CA-postgresql
+# signs and the role uploads, as the certificate of a client that the recorder
+# must refuse.
+#
+# Every command has `creates:`, so a second `molecule prepare` reuses the CA
+# and the certificates keep chaining to it.
+
+- name: SIPREC | Create the certificate directory
+  file:
+    path: "{{ tls_src_dir }}/siprec"
+    state: directory
+    mode: "0700"
+
+# ============ CA ============
+- name: SIPREC | Generate the key of SIPREC-CA
+  command: openssl genrsa -out {{ tls_src_dir }}/siprec/ca.key 4096
+  args:
+    creates: "{{ tls_src_dir }}/siprec/ca.key"
+
+- name: SIPREC | Generate the certificate of SIPREC-CA
+  command: >
+    openssl req -x509 -new -nodes
+    -key {{ tls_src_dir }}/siprec/ca.key
+    -sha256 -days 365
+    -out {{ tls_src_dir }}/siprec/ca.crt
+    -subj "/CN=SIPREC-CA"
+  args:
+    creates: "{{ tls_src_dir }}/siprec/ca.crt"
+
+# ============ The recorder's certificate ============
+- name: SIPREC | Create the recorder's certificate and key
+  include_tasks: siprec_recorder_certificate.yml
+  vars:
+    siprec_recorder_dir: "{{ tls_src_dir }}/siprec"
+
+# ============ Client certificate ============
+- name: SIPREC | Generate the key of the SIPREC client
+  command: openssl genrsa -out {{ tls_src_dir }}/siprec/client.key 2048
+  args:
+    creates: "{{ tls_src_dir }}/siprec/client.key"
+
+- name: SIPREC | Create the certificate config of the SIPREC client
+  copy:
+    content: |
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = siprec-client
+
+      [v3_req]
+      keyUsage = digitalSignature
+      extendedKeyUsage = clientAuth
+    dest: "{{ tls_src_dir }}/siprec/client.cnf"
+    mode: "0644"
+
+- name: SIPREC | Generate the CSR of the SIPREC client
+  command: >
+    openssl req -new
+    -key {{ tls_src_dir }}/siprec/client.key
+    -out {{ tls_src_dir }}/siprec/client.csr
+    -config {{ tls_src_dir }}/siprec/client.cnf
+  args:
+    creates: "{{ tls_src_dir }}/siprec/client.csr"
+
+- name: SIPREC | Sign the certificate of the SIPREC client with SIPREC-CA
+  command: >
+    openssl x509 -req
+    -in {{ tls_src_dir }}/siprec/client.csr
+    -CA {{ tls_src_dir }}/siprec/ca.crt
+    -CAkey {{ tls_src_dir }}/siprec/ca.key
+    -CAcreateserial
+    -out {{ tls_src_dir }}/siprec/client.crt
+    -days 365 -sha256
+    -extensions v3_req
+    -extfile {{ tls_src_dir }}/siprec/client.cnf
+  args:
+    creates: "{{ tls_src_dir }}/siprec/client.crt"
