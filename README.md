@@ -37,7 +37,7 @@ The recorder can accept SIPREC sessions over TLS, optionally with client certifi
 | `miarec_siprec_tls_key_file_src` | `""` | None | A local copy of the private key, see `miarec_siprec_tls_cert_file_src`. |
 | `miarec_siprec_tls_ca_file_src` | `""` | None | A local copy of the CA file, see `miarec_siprec_tls_cert_file_src`. |
 
-The TLS port, `PortTLS`, is a recorder setting of the MiaRec web portal, not a variable of the role: an operator turns TLS on and off there. The role writes the three file settings when any of the paths is set, and restarts the recorder when a setting changes.
+The TLS port, `PortTLS`, is a recorder setting of the MiaRec web portal, not a variable of the role: an operator turns TLS on and off there. The role always writes the three file settings, so a cleared path takes effect on a redeploy of the same version, and restarts the recorder when a setting changes.
 
 ### The recorder's certificate and key
 
